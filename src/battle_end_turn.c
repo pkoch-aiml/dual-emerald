@@ -91,10 +91,70 @@ static bool32 HandleEndTurnVarious(enum BattlerId battler)
     return effect;
 }
 
+// Dual Emerald: end-of-turn ability blocks, dispatched per ability slot.
+static bool32 TryFirstEventBlockAbility(enum BattlerId battler, enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_HEALER:
+    case ABILITY_HYDRATION:
+    case ABILITY_SHED_SKIN:
+        return AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE);
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 TryThirdEventBlockAbility(enum BattlerId battler, enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_TRUANT: // Not fully accurate but it has to be handled somehow. TODO: Implement the correct gen5+ behavior
+    case ABILITY_CUD_CHEW:
+    case ABILITY_SLOW_START:
+    case ABILITY_BAD_DREAMS:
+    case ABILITY_BALL_FETCH:
+    case ABILITY_HARVEST:
+    case ABILITY_MOODY:
+    case ABILITY_PICKUP:
+    case ABILITY_SPEED_BOOST:
+        return AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE);
+    default:
+        return FALSE;
+    }
+}
+
 static bool32 HandleEndTurnWeather(enum BattlerId battler)
 {
     gBattleStruct->eventState.endTurn++;
     return EndOrContinueWeather();
+}
+
+// Dual Emerald: weather-dependent end-of-turn abilities, dispatched per ability slot.
+static bool32 TryWeatherEndTurnAbility(enum BattlerId battler, enum Ability ability)
+{
+    switch (GetBattleWeather(gBattleWeather))
+    {
+    case BATTLE_WEATHER_RAIN:
+    case BATTLE_WEATHER_RAIN_PRIMAL:
+    case BATTLE_WEATHER_RAIN_DOWNPOUR:
+        if (ability != ABILITY_DRY_SKIN && ability != ABILITY_RAIN_DISH)
+            return FALSE;
+        break;
+    case BATTLE_WEATHER_SUN:
+    case BATTLE_WEATHER_SUN_PRIMAL:
+        if (ability != ABILITY_DRY_SKIN && ability != ABILITY_SOLAR_POWER)
+            return FALSE;
+        break;
+    case BATTLE_WEATHER_HAIL:
+    case BATTLE_WEATHER_SNOW:
+        if (ability != ABILITY_ICE_BODY)
+            return FALSE;
+        break;
+    default:
+        return FALSE;
+    }
+    return AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE);
 }
 
 static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
@@ -108,14 +168,16 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
     {
         // If there is no weather on the field, no need to check other battlers so go to next state
         gBattleStruct->eventState.endTurnBattler = 0;
+        gBattleStruct->eventState.endTurnAbilitySlot = 0;
         gBattleStruct->eventState.endTurn++;
         return effect;
     }
 
-    gBattleStruct->eventState.endTurnBattler++;
-
     if (!IsBattlerPresent(battler) || !HasWeatherEffect())
+    {
+        gBattleStruct->eventState.endTurnBattler++;
         return effect;
+    }
 
 
     switch (currBattleWeather)
@@ -128,7 +190,7 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
     case BATTLE_WEATHER_RAIN_DOWNPOUR:
         if (AbilityOrLearned(battler, ability, ABILITY_DRY_SKIN) || AbilityOrLearned(battler, ability, ABILITY_RAIN_DISH))
         {
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
+            if (TryEachAbilitySlot(battler, ability, TryWeatherEndTurnAbility, &gBattleStruct->eventState.endTurnAbilitySlot))
                 effect = TRUE;
         }
         break;
@@ -136,7 +198,7 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
     case BATTLE_WEATHER_SUN_PRIMAL:
         if (AbilityOrLearned(battler, ability, ABILITY_DRY_SKIN) || AbilityOrLearned(battler, ability, ABILITY_SOLAR_POWER))
         {
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
+            if (TryEachAbilitySlot(battler, ability, TryWeatherEndTurnAbility, &gBattleStruct->eventState.endTurnAbilitySlot))
                 effect = TRUE;
         }
         break;
@@ -161,7 +223,7 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
     case BATTLE_WEATHER_SNOW:
         if (AbilityOrLearned(battler, ability, ABILITY_ICE_BODY))
         {
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
+            if (TryEachAbilitySlot(battler, ability, TryWeatherEndTurnAbility, &gBattleStruct->eventState.endTurnAbilitySlot))
                 effect = TRUE;
         }
         else if (currBattleWeather == BATTLE_WEATHER_HAIL)
@@ -186,6 +248,8 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
         break;
     }
 
+    if (gBattleStruct->eventState.endTurnAbilitySlot == 0)
+        gBattleStruct->eventState.endTurnBattler++;
     return effect;
 }
 
@@ -413,17 +477,11 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
         break;
     case FIRST_EVENT_BLOCK_ABILITIES:
     {
-        enum Ability ability = GetBattlerAbility(battler);
-        switch (ability)
+        if (TryEachAbilitySlot(battler, GetBattlerAbility(battler), TryFirstEventBlockAbility, &gBattleStruct->eventState.endTurnAbilitySlot))
         {
-        case ABILITY_HEALER:
-        case ABILITY_HYDRATION:
-        case ABILITY_SHED_SKIN:
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
-                effect = TRUE;
-            break;
-        default:
-            break;
+            effect = TRUE;
+            if (gBattleStruct->eventState.endTurnAbilitySlot != 0)
+                break; // Come back for the next ability slot.
         }
         gBattleStruct->eventState.endTurnBlock++;
         break;
@@ -1328,23 +1386,11 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
         break;
     case THIRD_EVENT_BLOCK_ABILITIES:
     {
-        enum Ability ability = GetBattlerAbility(battler);
-        switch (ability)
+        if (TryEachAbilitySlot(battler, GetBattlerAbility(battler), TryThirdEventBlockAbility, &gBattleStruct->eventState.endTurnAbilitySlot))
         {
-        case ABILITY_TRUANT: // Not fully accurate but it has to be handled somehow. TODO: Implement the correct gen5+ behavior
-        case ABILITY_CUD_CHEW:
-        case ABILITY_SLOW_START:
-        case ABILITY_BAD_DREAMS:
-        case ABILITY_BALL_FETCH:
-        case ABILITY_HARVEST:
-        case ABILITY_MOODY:
-        case ABILITY_PICKUP:
-        case ABILITY_SPEED_BOOST:
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
-                effect = TRUE;
-            break;
-        default:
-            break;
+            effect = TRUE;
+            if (gBattleStruct->eventState.endTurnAbilitySlot != 0)
+                break; // Come back for the next ability slot.
         }
         gBattleStruct->eventState.endTurnBlock++;
         break;
@@ -1364,10 +1410,11 @@ static bool32 HandleEndTurnOpportunist(enum BattlerId battler)
 {
     bool32 effect = FALSE;
 
-    if (IsBattlerPresent(battler) && AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE))
+    if (IsBattlerPresent(battler) && TryAbilityEffectsBySlot(ABILITYEFFECT_OPPORTUNIST, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE, &gBattleStruct->eventState.endTurnAbilitySlot))
         effect = TRUE;
 
-    gBattleStruct->eventState.endTurnBattler++;
+    if (gBattleStruct->eventState.endTurnAbilitySlot == 0)
+        gBattleStruct->eventState.endTurnBattler++;
     return effect;
 }
 
@@ -1661,6 +1708,7 @@ bool32 DoEndTurnEffects(void)
         if (gBattleStruct->eventState.endTurnBattler == gBattlersCount || gBattleStruct->eventState.battlerSide == NUM_BATTLE_SIDES)
         {
             gBattleStruct->eventState.endTurnBattler = 0;
+            gBattleStruct->eventState.endTurnAbilitySlot = 0;
             gBattleStruct->eventState.battlerSide = 0;
             gBattleStruct->eventState.endTurnBlock = 0;
             gBattleStruct->eventState.endTurn++;

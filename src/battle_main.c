@@ -3554,6 +3554,7 @@ static void TryDoEventsBeforeFirstTurn(void)
 
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler = 0;
+        gBattleStruct->eventState.endTurnAbilitySlot = 0;
         gBattleScripting.moveendState = 0;
         gBattleStruct->eventState.moveEndAbilitySlot = 0;
         gBattleStruct->eventState.faintedAction = 0;
@@ -3585,6 +3586,7 @@ static void HandleEndTurn_ContinueBattle(void)
         }
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler = 0;
+        gBattleStruct->eventState.endTurnAbilitySlot = 0;
         gBattleStruct->eventState.endTurn = 0;
     }
 }

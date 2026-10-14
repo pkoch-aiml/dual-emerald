@@ -122,3 +122,46 @@ SINGLE_BATTLE_TEST("Learned Limber prevents paralysis")
         }
     }
 }
+
+SINGLE_BATTLE_TEST("Learned Rain Dish recovers HP in rain")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_RAIN_DISH); HP(1); MaxHP(100); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_RAIN_DANCE); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_RAIN_DISH);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_SIMPLE_HEAL, player);
+        HP_BAR(player, damage: -(100 / 16));
+    }
+}
+
+SINGLE_BATTLE_TEST("Natural Rain Dish and learned Dry Skin both recover HP in rain")
+{
+    GIVEN {
+        PLAYER(SPECIES_LUDICOLO) { Ability(ABILITY_RAIN_DISH); LearnedAbility(ABILITY_DRY_SKIN); HP(1); MaxHP(160); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_RAIN_DANCE); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_RAIN_DISH);
+        HP_BAR(player, damage: -(160 / 16));
+        ABILITY_POPUP(player, ABILITY_DRY_SKIN);
+        HP_BAR(player, damage: -(160 / 8));
+    }
+}
+
+SINGLE_BATTLE_TEST("Learned Speed Boost raises Speed at the end of the turn")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_SPEED_BOOST); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_SPEED_BOOST);
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_SPEED], DEFAULT_STAT_STAGE + 1);
+    }
+}
