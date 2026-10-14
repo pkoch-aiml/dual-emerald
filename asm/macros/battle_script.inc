@@ -2062,6 +2062,13 @@
 	.byte \onFieldStatus
 	.endm
 
+	@ Dual Emerald: runs the absorb effect of one ability slot (0 = natural, 1 = learned) of the
+	@ battler whose two slots both absorb the current move.
+	.macro trydualabsorbslot slot:req
+	callnative BS_TryDualAbsorbSlot
+	.byte \slot
+	.endm
+
 	.macro jumpifgenconfiglowerthan tag:req, gen:req, jumpInstr:req
 	callnative BS_JumpIfGenConfigLowerThan
 	.2byte \tag

@@ -9925,6 +9925,35 @@ static bool32 TryWindRiderPowerAbility(enum BattlerId battler, enum Ability abil
     }
 }
 
+// Dual Emerald: runs one slot's absorb effect from BattleScript_DualAbilityAbsorb. Each slot's
+// effect is prepared just before its own script runs, so the two don't overwrite each other.
+void BS_TryDualAbsorbSlot(void)
+{
+    NATIVE_ARGS(u8 slot);
+    enum BattlerId battler = gBattleStruct->dualAbsorbBattler;
+    enum Ability ability = (cmd->slot == BATTLER_ABILITY_NATURAL) ? GetBattlerAbility(battler) : GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED);
+    struct DamageContext ctx = {0};
+    const u8 *script;
+
+    gBattlescriptCurrInstr = cmd->nextInstr;
+
+    ctx.battlerAtk = gBattlerAttacker;
+    ctx.battlerDef = battler;
+    ctx.move = ctx.chosenMove = ctx.baseMove = gCurrentMove;
+    ctx.moveType = gBattleStruct->dualAbsorbMoveType;
+    ctx.abilities[gBattlerAttacker] = GetBattlerAbility(gBattlerAttacker);
+    ctx.abilities[battler] = GetBattlerAbility(battler);
+    ctx.runScript = TRUE;
+
+    script = GetAbilityAbsorbScript(&ctx, ability);
+    if (script != NULL)
+    {
+        gLastUsedAbility = ability;
+        gBattleScripting.battler = gBattlerAbility = battler;
+        BattleScriptCall(script);
+    }
+}
+
 void BS_TryWindRiderPower(void)
 {
     NATIVE_ARGS(u8 battler, const u8 *failInstr);

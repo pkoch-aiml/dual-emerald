@@ -176,11 +176,16 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - `else if` chains (e.g. `GetBattlerTotalSpeedStat`) currently apply the first matching slot. 2.6 restructures them so effects stack.
 - Tests in `test/battle/dual_ability/direct_checks.c` (10).
 
-### 2.5 Trigger dispatch
-- `AbilityBattleEffects` callers loop over both slots, **natural first**.
-- Events that track "already triggered", such as the switch-in ability, need state for each slot so both slots can fire, as with Intimidate + Drizzle.
-- **Two immunities to one move** (e.g. Dry Skin + Storm Drain vs. Water Gun): both abilities' extra effects trigger (design doc, *Foreseen Interactions*).
-- `gLastUsedAbility` and the popups name the slot that actually fired.
+### 2.5 Trigger dispatch ✅
+- **Helpers** (`battle_util.c`): `TryAbilityEffectsBySlot` and `TryEachAbilitySlot` fire one slot per call, natural first. They keep a cursor per state machine in `eventState` (switch-in, move end, end of turn), so the caller returns to the same step for the next slot after the first slot's script runs. They only wait for another slot if that slot holds an ability, so behavior with an empty learned slot is unchanged. `TryAbilityEffectsAnySlot` is for events the caller re-polls anyway (status immunity cures).
+- **Script commands** use `TryScriptAbilitySlots`. The fired ability's script returns to the command, which resumes at the next slot. Pending commands are keyed by address, battler and battle-script stack depth (`gBattleStruct->pendingScriptAbilitySlots`), so nested commands of the same kind don't interfere.
+- Converted: switch-in events, move end (contact abilities, form change on hit, attacker effects, Moxie-style, Color Change, Opportunist, immunity), end of turn (weather abilities, first and third ability blocks, Opportunist), the weather/terrain/Wind Rider/switch-in/form-change script commands, Defiant/Competitive/Rattled, Cloud Nine/Air Lock, Unnerve, the Dazzling-type priority blockers, and stat-drop prevention (which names the blocking slot).
+- Removed `AbilityBattleEffects`' natural-ability re-reads in the weather and terrain cases.
+- **Two absorbing abilities** (e.g. Water Absorb + Storm Drain vs. Water Gun): both effects run, natural first, via `BattleScript_DualAbilityAbsorb` and the `trydualabsorbslot` native. Each slot's effect is prepared just before its script runs.
+- Fixed a 2.4 conversion inside `BS_TryDefiantRattled`'s ability switch that could raise the wrong stat.
+- **Performance:** `AI_FRAME_CEILING_DOUBLES_NO_FLAGS` in `test/battle/ai/ai_thinking_time.c` raised from 14 to 15. Upstream's ceilings equal the measured values with no headroom; the cumulative learned-slot checks add about one frame there. The other ceilings still hold.
+- Not converted, because they only matter for signature form-change abilities that can't be learned: `HandleEndTurnFormChange`, `Cmd_tryselfconfusiondmgformchange`. Two -ate abilities in both slots (`TrySetAteType`) use the first match.
+- Tests in `test/battle/dual_ability/triggers.c` (17).
 
 ### 2.6 Damage, speed, accuracy and crit modifiers
 - The `switch (ability)` modifier blocks run once per slot, using `AbilityOrLearned` or a per-slot loop. **Boosts from both slots stack by default**, including doubled abilities (design doc, *Foreseen Interactions*).

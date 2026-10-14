@@ -2315,11 +2315,13 @@ bool32 IsPowderMoveBlocked(struct DamageContext *ctx)
     return TRUE;
 }
 
-bool32 CanAbilityAbsorbMove(struct DamageContext *ctx)
+// Dual Emerald: the script that absorbs ctx->move for one ability, or NULL. Like the vanilla code,
+// this prepares the absorb's effect (heal amount, stat change) as it decides.
+static inline const u8 *GetAbilityAbsorbScriptInline(struct DamageContext *ctx, enum Ability ability)
 {
     const u8 *battleScript = NULL;
 
-    switch (ctx->abilities[ctx->battlerDef])
+    switch (ability)
     {
     case ABILITY_VOLT_ABSORB:
         if (ctx->moveType == TYPE_ELECTRIC)
@@ -2382,14 +2384,65 @@ bool32 CanAbilityAbsorbMove(struct DamageContext *ctx)
         break;
     }
 
-    if (battleScript == NULL)
+
+    return battleScript;
+}
+
+const u8 *GetAbilityAbsorbScript(struct DamageContext *ctx, enum Ability ability)
+{
+    return GetAbilityAbsorbScriptInline(ctx, ability);
+}
+
+bool32 CanAbilityAbsorbMove(struct DamageContext *ctx)
+{
+    enum Ability naturalAbility = ctx->abilities[ctx->battlerDef];
+    enum Ability learnedAbility = ABILITY_NONE;
+    bool32 runScript = ctx->runScript;
+    const u8 *naturalScript;
+    const u8 *learnedScript = NULL;
+
+    if (gBattleStruct != NULL && !gIgnoreLearnedAbilities && gBattleMons[ctx->battlerDef].learnedAbility != ABILITY_NONE)
+        learnedAbility = GetBattlerAbilityInSlot(ctx->battlerDef, BATTLER_ABILITY_LEARNED);
+
+    if (learnedAbility == ABILITY_NONE)
+    {
+        // Only the natural slot can absorb: same as vanilla. This runs in hot loops (AI), so keep it cheap.
+        naturalScript = GetAbilityAbsorbScriptInline(ctx, naturalAbility);
+        if (naturalScript == NULL)
+            return FALSE;
+        if (ctx->runScript)
+        {
+            gLastUsedAbility = naturalAbility;
+            gBattleScripting.battler = gBattlerAbility = ctx->battlerDef;
+            BattleScriptCall(naturalScript);
+        }
+        return TRUE;
+    }
+
+    // Decide without preparing effects; each slot's effect is prepared right before its script runs.
+    ctx->runScript = FALSE;
+    naturalScript = GetAbilityAbsorbScriptInline(ctx, naturalAbility);
+    learnedScript = GetAbilityAbsorbScriptInline(ctx, learnedAbility);
+    ctx->runScript = runScript;
+
+    if (naturalScript == NULL && learnedScript == NULL)
         return FALSE;
 
     if (ctx->runScript)
     {
-        gLastUsedAbility = ctx->abilities[ctx->battlerDef];
         gBattleScripting.battler = gBattlerAbility = ctx->battlerDef;
-        BattleScriptCall(battleScript);
+        if (naturalScript != NULL && learnedScript != NULL)
+        {
+            // Both slots absorb the move: run both, natural first (design doc, Foreseen Interactions).
+            gBattleStruct->dualAbsorbBattler = ctx->battlerDef;
+            gBattleStruct->dualAbsorbMoveType = ctx->moveType;
+            BattleScriptCall(BattleScript_DualAbilityAbsorb);
+        }
+        else
+        {
+            gLastUsedAbility = (naturalScript != NULL) ? naturalAbility : learnedAbility;
+            BattleScriptCall(GetAbilityAbsorbScriptInline(ctx, gLastUsedAbility));
+        }
     }
 
     return TRUE;

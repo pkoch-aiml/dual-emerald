@@ -243,3 +243,37 @@ SINGLE_BATTLE_TEST("Learned Cloud Nine negates weather effects")
         NOT ABILITY_POPUP(player, ABILITY_RAIN_DISH);
     }
 }
+
+SINGLE_BATTLE_TEST("Learned Volt Absorb absorbs Electric moves")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_THUNDER_SHOCK) == TYPE_ELECTRIC);
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_VOLT_ABSORB); HP(1); MaxHP(100); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_THUNDER_SHOCK); }
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_VOLT_ABSORB);
+        HP_BAR(opponent, damage: -25);
+    }
+}
+
+SINGLE_BATTLE_TEST("Natural Water Absorb and learned Storm Drain both absorb Water moves, natural first")
+{
+    GIVEN {
+        WITH_CONFIG(B_REDIRECT_ABILITY_IMMUNITY, GEN_5);
+        ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_WATER_ABSORB); LearnedAbility(ABILITY_STORM_DRAIN); HP(1); MaxHP(100); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_WATER_GUN); }
+    } SCENE {
+        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_WATER_GUN, player);
+        ABILITY_POPUP(opponent, ABILITY_WATER_ABSORB);
+        HP_BAR(opponent, damage: -25);
+        ABILITY_POPUP(opponent, ABILITY_STORM_DRAIN);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_STATS_CHANGE, opponent);
+    } THEN {
+        EXPECT_EQ(opponent->statStages[STAT_SPATK], DEFAULT_STAT_STAGE + 1);
+    }
+}

@@ -606,6 +606,8 @@ struct BattleStruct
     struct EventStates eventState;
     struct PendingScriptAbilitySlot pendingScriptAbilitySlots[MAX_PENDING_SCRIPT_ABILITY_SLOTS];
     u8 pendingScriptAbilitySlotCount;
+    u8 dualAbsorbBattler;   // Dual Emerald: target whose two slots both absorb the current move
+    u8 dualAbsorbMoveType;
     struct FutureSight futureSight[MAX_BATTLERS_COUNT];
     struct Wish wish[MAX_BATTLERS_COUNT];
     u16 moveTarget[MAX_BATTLERS_COUNT];

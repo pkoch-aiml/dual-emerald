@@ -3,7 +3,7 @@
 
 #define AI_FRAME_CEILING_SINGLES_NO_FLAGS                       2
 #define AI_FRAME_CEILING_SINGLES_SMART_TRAINER                  7
-#define AI_FRAME_CEILING_DOUBLES_NO_FLAGS                       14
+#define AI_FRAME_CEILING_DOUBLES_NO_FLAGS                       15 // Dual Emerald: was 14. Learned-slot checks in hot paths cost ~1 frame here.
 #define AI_FRAME_CEILING_DOUBLES_SMART_TRAINER                  28
 #define AI_FRAME_CEILING_STEVEN_MULTI                           21
 #define AI_FRAME_CEILING_STEVEN_MULTI_SMART_TRAINER             24

@@ -103,6 +103,7 @@ bool32 CanTargetBlockPranksterMove(struct DamageContext *ctx, s32 movePriority);
 bool32 CanPsychicTerrainProtectTarget(struct DamageContext *ctx, s32 movePriority);
 bool32 CanMoveBeBlockedByTarget(struct DamageContext *ctx, s32 movePriority);
 bool32 CanAbilityAbsorbMove(struct DamageContext *ctx);
+const u8 *GetAbilityAbsorbScript(struct DamageContext *ctx, enum Ability ability);
 bool32 TryFieldEffects(enum FieldEffectCases caseId);
 u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger);
 bool32 TryAbilityEffectsBySlot(enum AbilityEffect caseID, enum BattlerId battler, enum Ability naturalAbility, enum Move move, bool32 shouldAbilityTrigger, u8 *slotCursor);

@@ -4884,6 +4884,12 @@ BattleScript_MoveHPDrain::
 	waitmessage B_WAIT_TIME_LONG
 	return
 
+@ Dual Emerald: both of the target's ability slots absorb the move; natural slot first.
+BattleScript_DualAbilityAbsorb::
+	trydualabsorbslot 0
+	trydualabsorbslot 1
+	return
+
 BattleScript_MoveStatDrain::
 	pause B_WAIT_TIME_SHORT
 	call BattleScript_AbilityPopUp
