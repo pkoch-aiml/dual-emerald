@@ -8805,7 +8805,8 @@ static void Cmd_setnonvolatilestatus(void)
 
 // Dual Emerald: Simple Beam and Worry Seed overwrite the natural ability. They affect the learned slot
 // instead if the natural ability already is the new one, or is a signature ability that can't be
-// overwritten. They fail on an empty learned slot, so single-ability Pokémon behave as before.
+// overwritten. An empty learned slot gains the new ability (user's ruling), so e.g. Simple Beam gives a
+// wild Mimikyu a learned Simple.
 static void Cmd_tryoverwriteability(void)
 {
     CMD_ARGS(const u8 *failInstr);
@@ -8815,7 +8816,7 @@ static void Cmd_tryoverwriteability(void)
     bool32 overwriteLearned = (naturalAbility == newAbility || gAbilitiesInfo[naturalAbility].cantBeOverwritten);
 
     if (overwriteLearned
-     && (learnedAbility == ABILITY_NONE || learnedAbility == newAbility || gAbilitiesInfo[learnedAbility].cantBeOverwritten))
+     && (learnedAbility == newAbility || (learnedAbility != ABILITY_NONE && gAbilitiesInfo[learnedAbility].cantBeOverwritten)))
     {
         RecordAbilityBattle(gBattlerTarget, naturalAbility);
         gBattlescriptCurrInstr = cmd->failInstr;

@@ -3,8 +3,8 @@
 
 // Design doc: Simple Beam and Worry Seed affect the learned ability if the target already has Simple
 // (or Insomnia) as its natural ability, and the natural ability otherwise. User's ruling: they also
-// affect the learned slot when the natural ability is a signature ability. They fail on an empty
-// learned slot, as they do on single-ability Pokémon.
+// affect the learned slot when the natural ability is a signature ability, and an empty learned slot
+// gains the new ability, so they work on single-ability Pokémon where vanilla's would fail.
 
 ASSUMPTIONS
 {
@@ -48,7 +48,7 @@ SINGLE_BATTLE_TEST("Simple Beam and Worry Seed overwrite the learned ability if 
     }
 }
 
-SINGLE_BATTLE_TEST("Simple Beam doesn't fill an empty learned slot")
+SINGLE_BATTLE_TEST("Simple Beam fills an empty learned slot")
 {
     enum Species species;
     enum Ability ability;
@@ -62,9 +62,10 @@ SINGLE_BATTLE_TEST("Simple Beam doesn't fill an empty learned slot")
     } WHEN {
         TURN { MOVE(player, MOVE_SIMPLE_BEAM); }
     } SCENE {
-        MESSAGE("But it failed!");
+        NOT MESSAGE("But it failed!");
     } THEN {
-        EXPECT_EQ(opponent->learnedAbility, ABILITY_NONE);
+        EXPECT_EQ(opponent->ability, ability);
+        EXPECT_EQ(opponent->learnedAbility, ABILITY_SIMPLE);
     }
 }
 

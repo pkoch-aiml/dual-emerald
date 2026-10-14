@@ -18,7 +18,8 @@ SINGLE_BATTLE_TEST("Simple Beam replaces target's ability with Simple")
     }
 }
 
-DOUBLE_BATTLE_TEST("Simple Beam fails if the target already has Simple")
+// Dual Emerald: a target that already has Simple gets it as its learned ability instead.
+DOUBLE_BATTLE_TEST("Simple Beam gives a learned Simple to a target that already has Simple")
 {
     GIVEN {
         ASSUME(GetMoveEffect(MOVE_SIMPLE_BEAM) == EFFECT_OVERWRITE_ABILITY);
@@ -32,16 +33,15 @@ DOUBLE_BATTLE_TEST("Simple Beam fails if the target already has Simple")
     } SCENE {
         ANIMATION(ANIM_TYPE_MOVE, MOVE_SIMPLE_BEAM, playerLeft);
         ABILITY_POPUP(opponentLeft, ABILITY_OVERGROW);
-        NONE_OF {
-            ANIMATION(ANIM_TYPE_MOVE, MOVE_SIMPLE_BEAM, playerRight);
-            ABILITY_POPUP(opponentLeft, ABILITY_SIMPLE);
-        }
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SIMPLE_BEAM, playerRight);
     } THEN {
         EXPECT_EQ(opponentLeft->ability, ABILITY_SIMPLE);
+        EXPECT_EQ(opponentLeft->learnedAbility, ABILITY_SIMPLE);
     }
 }
 
-SINGLE_BATTLE_TEST("Simple Beam fails if target has an ability that can't be overwritten")
+// Dual Emerald: the ability that can't be overwritten stays, and the target gets a learned Simple.
+SINGLE_BATTLE_TEST("Simple Beam gives a learned Simple to a target whose ability can't be overwritten")
 {
     enum Species species;
     enum Ability ability;
@@ -69,8 +69,11 @@ SINGLE_BATTLE_TEST("Simple Beam fails if target has an ability that can't be ove
     } WHEN {
         TURN { MOVE(player, MOVE_SIMPLE_BEAM); }
     } SCENE {
-        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_SIMPLE_BEAM, player);
-        MESSAGE("But it failed!");
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SIMPLE_BEAM, player);
+        NOT MESSAGE("But it failed!");
+    } THEN {
+        EXPECT_EQ(opponent->ability, ability);
+        EXPECT_EQ(opponent->learnedAbility, ABILITY_SIMPLE);
     }
 }
 
@@ -91,7 +94,8 @@ SINGLE_BATTLE_TEST("Worry Seed replaces target's ability with Insomnia")
     }
 }
 
-DOUBLE_BATTLE_TEST("Worry Seed fails if the target already has Insomnia")
+// Dual Emerald: a target that already has Insomnia gets it as its learned ability instead.
+DOUBLE_BATTLE_TEST("Worry Seed gives a learned Insomnia to a target that already has Insomnia")
 {
     GIVEN {
         ASSUME(GetMoveEffect(MOVE_WORRY_SEED) == EFFECT_OVERWRITE_ABILITY);
@@ -105,16 +109,15 @@ DOUBLE_BATTLE_TEST("Worry Seed fails if the target already has Insomnia")
     } SCENE {
         ANIMATION(ANIM_TYPE_MOVE, MOVE_WORRY_SEED, playerLeft);
         ABILITY_POPUP(opponentLeft, ABILITY_OVERGROW);
-        NONE_OF {
-            ANIMATION(ANIM_TYPE_MOVE, MOVE_WORRY_SEED, playerRight);
-            ABILITY_POPUP(opponentLeft, ABILITY_INSOMNIA);
-        }
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_WORRY_SEED, playerRight);
     } THEN {
         EXPECT_EQ(opponentLeft->ability, ABILITY_INSOMNIA);
+        EXPECT_EQ(opponentLeft->learnedAbility, ABILITY_INSOMNIA);
     }
 }
 
-SINGLE_BATTLE_TEST("Worry Seed fails if target has an ability that can't be overwritten")
+// Dual Emerald: the ability that can't be overwritten stays, and the target gets a learned Insomnia.
+SINGLE_BATTLE_TEST("Worry Seed gives a learned Insomnia to a target whose ability can't be overwritten")
 {
     enum Species species;
     enum Ability ability;
@@ -142,7 +145,10 @@ SINGLE_BATTLE_TEST("Worry Seed fails if target has an ability that can't be over
     } WHEN {
         TURN { MOVE(player, MOVE_WORRY_SEED); }
     } SCENE {
-        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_WORRY_SEED, player);
-        MESSAGE("But it failed!");
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_WORRY_SEED, player);
+        NOT MESSAGE("But it failed!");
+    } THEN {
+        EXPECT_EQ(opponent->ability, ability);
+        EXPECT_EQ(opponent->learnedAbility, ABILITY_INSOMNIA);
     }
 }

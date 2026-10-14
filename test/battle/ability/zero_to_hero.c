@@ -74,16 +74,30 @@ SINGLE_BATTLE_TEST("Zero to Hero will activate if a switch move is used")
     } THEN { EXPECT_EQ(player->species, SPECIES_PALAFIN_HERO); }
 }
 
-SINGLE_BATTLE_TEST("Gastro Acid, Worry Seed, and Simple Beam fail if the target has the Ability Zero to Hero")
+SINGLE_BATTLE_TEST("Gastro Acid fails if the target has the Ability Zero to Hero")
 {
-    enum Move move;
-
-    PARAMETRIZE { move = MOVE_GASTRO_ACID; }
-    PARAMETRIZE { move = MOVE_WORRY_SEED; }
-    PARAMETRIZE { move = MOVE_SIMPLE_BEAM; }
-
     GIVEN {
         ASSUME(GetMoveEffect(MOVE_GASTRO_ACID) == EFFECT_GASTRO_ACID);
+        PLAYER(SPECIES_PALAFIN_ZERO) { Ability(ABILITY_ZERO_TO_HERO); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_GASTRO_ACID); }
+    } SCENE {
+        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_GASTRO_ACID, player);
+        MESSAGE("But it failed!");
+    }
+}
+
+// Dual Emerald: Zero to Hero can't be overwritten, so Worry Seed and Simple Beam give a learned ability instead.
+SINGLE_BATTLE_TEST("Worry Seed and Simple Beam give a learned ability to a target with Zero to Hero")
+{
+    enum Move move;
+    enum Ability ability;
+
+    PARAMETRIZE { move = MOVE_WORRY_SEED; ability = ABILITY_INSOMNIA; }
+    PARAMETRIZE { move = MOVE_SIMPLE_BEAM; ability = ABILITY_SIMPLE; }
+
+    GIVEN {
         ASSUME(GetMoveEffect(MOVE_WORRY_SEED) == EFFECT_OVERWRITE_ABILITY);
         ASSUME(GetMoveEffect(MOVE_SIMPLE_BEAM) == EFFECT_OVERWRITE_ABILITY);
         PLAYER(SPECIES_PALAFIN_ZERO) { Ability(ABILITY_ZERO_TO_HERO); }
@@ -91,8 +105,10 @@ SINGLE_BATTLE_TEST("Gastro Acid, Worry Seed, and Simple Beam fail if the target 
     } WHEN {
         TURN { MOVE(opponent, move); }
     } SCENE {
-        NOT ANIMATION(ANIM_TYPE_MOVE, move, player);
-        MESSAGE("But it failed!");
+        ANIMATION(ANIM_TYPE_MOVE, move, opponent);
+    } THEN {
+        EXPECT_EQ(player->ability, ABILITY_ZERO_TO_HERO);
+        EXPECT_EQ(player->learnedAbility, ability);
     }
 }
 
