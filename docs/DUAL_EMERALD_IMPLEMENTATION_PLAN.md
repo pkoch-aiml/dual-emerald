@@ -227,6 +227,24 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 
 ## Milestone 3: Ability-interaction rules
 
+**Decisions beyond the design doc** (user, 2026-10-14):
+- Mummy/Lingering Aroma in the learned slot fills an attacker's *empty* learned slot.
+- Power of Alchemy/Receiver copies exactly, empty slots included (like Imposter); a slot holding an uncopyable ability keeps the holder's own ability.
+- Gastro Acid, Core Enforcer, Simple Beam and Worry Seed affect the learned slot when the natural ability is a signature (unsuppressable or unoverwritable) ability, instead of failing.
+- Learned Trace picks uniformly from every non-empty, traceable ability in any foe's slots.
+- Transform and Imposter already copy the learned slot: `learnedAbility` sits before `pp` in `struct BattlePokemon`, and Transform copies everything up to `pp`.
+- In-battle changes to either slot are never written back to the party, so they end on switch-out or at the end of battle.
+
+**Stages:**
+- 3.1 ✅ Tests for rules that already hold (`rule_mold_breaker.c`, `rule_neutralizing_gas.c`, `rule_transform.c`, `rule_natural_only_moves.c`; 17 tests): the Mold Breaker family ignores both slots (Mold Breaker/Teravolt/Turboblaze, Mycelium Might on status moves, Propeller Tail/Stalwart vs. redirection); Neutralizing Gas suppresses all foe slots and its holder's other slot, ends when a double holder leaves, and persists while another holder remains; Transform and Imposter (natural or learned) copy both slots, empty included, and the original slots return on switch-out; Skill Swap, Role Play, Entrainment and Doodle touch natural slots only. Signature immunity and Illusion are tested with the stages that change those effects. Test files live at `test/battle/dual_ability/rule_*.c` because the Makefile only collects tests up to three directories deep.
+- 3.2 Gastro Acid / Core Enforcer, with the signature fallback.
+- 3.3 Simple Beam / Worry Seed.
+- 3.4 Mummy / Lingering Aroma.
+- 3.5 Wandering Spirit.
+- 3.6 Power of Alchemy / Receiver.
+- 3.7 Trace.
+- 3.8 Truant twice.
+
 There's one test file for each rule in the design doc:
 - Mummy / Lingering Aroma: same slot as the foe's.
 - Mold Breaker family: ignores all slots.
