@@ -277,3 +277,23 @@ SINGLE_BATTLE_TEST("Natural Water Absorb and learned Storm Drain both absorb Wat
         EXPECT_EQ(opponent->statStages[STAT_SPATK], DEFAULT_STAT_STAGE + 1);
     }
 }
+
+SINGLE_BATTLE_TEST("Emergency Exit doesn't stop a learned Flame Body from burning a contact attacker")
+{
+    GIVEN {
+        ASSUME(MoveMakesContact(MOVE_SUPER_FANG));
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_GOLISOPOD) { Ability(ABILITY_EMERGENCY_EXIT); LearnedAbility(ABILITY_FLAME_BODY); MaxHP(263); HP(262); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_SUPER_FANG); SEND_OUT(opponent, 1); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SUPER_FANG, player);
+        HP_BAR(opponent);
+        ABILITY_POPUP(opponent, ABILITY_FLAME_BODY);
+        MESSAGE("Wobbuffet was burned!");
+        ABILITY_POPUP(opponent, ABILITY_EMERGENCY_EXIT);
+    } THEN {
+        EXPECT(player->status1 & STATUS1_BURN);
+    }
+}

@@ -272,6 +272,7 @@ static enum CancelerResult CancelerTruant(struct BattleCalcValues *cv)
         CancelMultiTurnMoves(cv->battlerAtk);
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_LOAFING;
         gBattlerAbility = cv->battlerAtk;
+        gLastUsedAbility = ABILITY_TRUANT;
         gBattlescriptCurrInstr = BattleScript_TruantLoafingAround;
         gBattleStruct->moveResultFlags[cv->battlerDef] |= MOVE_RESULT_MISSED;
         return CANCELER_RESULT_FAILURE;
@@ -314,6 +315,7 @@ static enum CancelerResult CancelerFlinch(struct BattleCalcValues *cv)
         {
             SetStatChange(cv->battlerAtk, STAT_SPEED, 1);
             gBattlerAbility = cv->battlerAtk;
+            gLastUsedAbility = ABILITY_STEADFAST;
             gBattlescriptCurrInstr = BattleScript_MoveUsedFlinchedAndSteadfast;
         }
         else
@@ -1699,6 +1701,7 @@ static enum CancelerResult CancelerProtean(struct BattleCalcValues *cv)
             gBattleMons[cv->battlerAtk].volatiles.usedProteanLibero = TRUE;
         PREPARE_TYPE_BUFFER(gBattleTextBuff1, moveType);
         gBattlerAbility = cv->battlerAtk;
+        gLastUsedAbility = BattlerHasAbility(cv->battlerAtk, ABILITY_PROTEAN) ? ABILITY_PROTEAN : ABILITY_LIBERO;
         PrepareStringBattleWithWait(STRINGID_EMPTYSTRING3, cv->battlerAtk);
         BattleScriptCall(BattleScript_ProteanActivates);
         return CANCELER_RESULT_RUN_SCRIPT_AND_INCREMENT;
@@ -3347,6 +3350,7 @@ static enum MoveEndResult MoveEndAbsorb(struct BattleCalcValues *cv)
                 SetPassiveDamageAmount(cv->battlerAtk, healAmount);
                 gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_ABSORB_OOZE;
                 gBattlerAbility = gBattleScripting.battler = cv->battlerDef;
+                gLastUsedAbility = ABILITY_LIQUID_OOZE;
                 BattleScriptCall(BattleScript_EffectAbsorbLiquidOoze);
                 result = MOVEEND_RESULT_RUN_SCRIPT;
             }
@@ -3946,6 +3950,7 @@ static enum MoveEndResult MoveEndBouncedMove(struct BattleCalcValues *cv)
             if (gBattleStruct->magicBouncePending & 1u << bounceBattler)
             {
                 gBattlerAbility = bounceBattler;
+                gLastUsedAbility = ABILITY_MAGIC_BOUNCE;
                 gBattlescriptCurrInstr = GetMoveBattleScript(gCurrentMove);
                 BattleScriptCall(BattleScript_MagicBounce);
             }
@@ -4266,6 +4271,7 @@ static enum MoveEndResult MoveEndMoveBlock(struct BattleCalcValues *cv)
                 if (AbilityOrLearned(battlerDef, cv->abilities[battlerDef], ABILITY_STICKY_HOLD))
                 {
                     gBattlerAbility = battlerDef;
+                    gLastUsedAbility = ABILITY_STICKY_HOLD;
                     BattleScriptCall(BattleScript_StickyHoldActivatesRet);
                     return MOVEEND_RESULT_RUN_SCRIPT;
                     break;
@@ -4385,6 +4391,7 @@ static enum MoveEndResult MoveEndMoveBlock(struct BattleCalcValues *cv)
                 else if (AbilityOrLearned(battlerDef, cv->abilities[battlerDef], ABILITY_SUCTION_CUPS))
                 {
                     gBattlerAbility = battlerDef;
+                    gLastUsedAbility = ABILITY_SUCTION_CUPS;
                     BattleScriptCall(BattleScript_AbilityPreventsPhasingOutRet);
                 }
                 else if (gBattleMons[battlerDef].volatiles.root)
@@ -4786,6 +4793,7 @@ static enum MoveEndResult MoveEndEmergencyExit(struct BattleCalcValues *cv)
             continue;
 
         gBattleScripting.battler = battler;
+        gLastUsedAbility = GetEmergencyExitAbility(battler);
         gSpecialStatuses[battler].queuedSwitch = QUEUED_SWITCH_OPEN_PARTY_SCREEN;
         BattleScriptCall(BattleScript_EmergencyExit);
         result = MOVEEND_RESULT_RUN_SCRIPT;
@@ -4905,6 +4913,7 @@ static enum MoveEndResult MoveEndPickpocket(struct BattleCalcValues *cv)
               && CanStealItem(battlerDef, cv->battlerAtk, itemToSteal))
             {
                 gBattlerTarget = gBattlerAbility = battlerDef;
+                gLastUsedAbility = ABILITY_PICKPOCKET;
                 gEffectBattler = cv->battlerAtk;
                 // Battle scripting is super brittle so we shall do the item exchange now (if possible)
                 if (abilityAtk != ABILITY_STICKY_HOLD)

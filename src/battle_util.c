@@ -10389,6 +10389,12 @@ bool32 TrySwitchInEjectPack(enum EjectPackTiming timing)
     return FALSE;
 }
 
+// Dual Emerald: which of Emergency Exit / Wimp Out the battler has, for popups.
+enum Ability GetEmergencyExitAbility(enum BattlerId battler)
+{
+    return BattlerHasAbility(battler, ABILITY_EMERGENCY_EXIT) ? ABILITY_EMERGENCY_EXIT : ABILITY_WIMP_OUT;
+}
+
 bool32 EmergencyExitCanBeTriggered(enum BattlerId battler, enum Ability ability)
 {
     if (!AbilityOrLearned(battler, ability, ABILITY_EMERGENCY_EXIT) && !AbilityOrLearned(battler, ability, ABILITY_WIMP_OUT))

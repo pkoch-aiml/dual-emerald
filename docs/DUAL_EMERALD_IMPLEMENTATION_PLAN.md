@@ -185,7 +185,9 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - Fixed a 2.4 conversion inside `BS_TryDefiantRattled`'s ability switch that could raise the wrong stat.
 - **Performance:** `AI_FRAME_CEILING_DOUBLES_NO_FLAGS` in `test/battle/ai/ai_thinking_time.c` raised from 14 to 15. Upstream's ceilings equal the measured values with no headroom; the cumulative learned-slot checks add about one frame there. The other ceilings still hold.
 - Not converted, because they only matter for signature form-change abilities that can't be learned: `HandleEndTurnFormChange`, `Cmd_tryselfconfusiondmgformchange`. Two -ate abilities in both slots (`TrySetAteType`) use the first match.
-- Tests in `test/battle/dual_ability/triggers.c` (17).
+- **Popups name the ability that fired.** Trigger sites outside `AbilityBattleEffects` set `gLastUsedAbility` explicitly: Emergency Exit/Wimp Out, Truant, Steadfast, Protean/Libero, Liquid Ooze, Magic Bounce, Sticky Hold, Suction Cups, Pickpocket, Cheek Pouch, Ripen, Booster Energy, Aroma Veil, Mirror Armor, and `jumpifabilitypresent`. Otherwise a learned ability that fired earlier could leave a stale `gLastUsedAbility` behind and mislabel a later natural popup.
+- Design doc, *Foreseen Interactions*: an ability that switches its holder out doesn't stop the learned ability from triggering on the same attack (Emergency Exit + learned Flame Body), and there's a test for it.
+- Tests in `test/battle/dual_ability/triggers.c` (18).
 
 ### 2.6 Damage, speed, accuracy and crit modifiers
 - The `switch (ability)` modifier blocks run once per slot, using `AbilityOrLearned` or a per-slot loop. **Boosts from both slots stack by default**, including doubled abilities (design doc, *Foreseen Interactions*).

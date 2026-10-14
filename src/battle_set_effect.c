@@ -650,6 +650,7 @@ static void HandleSetEffectPsychicNoise(struct BattleCalcValues *cv, struct SetE
     if (battler)
     {
         gBattlerAbility = battler - 1;
+        gLastUsedAbility = ABILITY_AROMA_VEIL;
         BattleScriptPush(se->script);
         gBattlescriptCurrInstr = BattleScript_AromaVeilProtectsRet;
     }

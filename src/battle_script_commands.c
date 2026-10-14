@@ -3021,6 +3021,7 @@ static void Cmd_jumpifabilitypresent(void)
     if (abilityBattler)
     {
         gBattlerAbility = abilityBattler - 1;
+        gLastUsedAbility = ability;
         gBattlescriptCurrInstr = cmd->jumpInstr;
     }
     else
@@ -4374,6 +4375,7 @@ static bool32 TryCheekPouch(enum BattlerId battler, enum Item itemId, const u8 *
         && !IsBattlerAtMaxHp(battler))
     {
         gBattlerAbility = battler;
+        gLastUsedAbility = ABILITY_CHEEK_POUCH;
         SetHealAmount(battler, GetNonDynamaxMaxHP(battler) / 3);
         BattleScriptPush(nextInstr);
         gBattlescriptCurrInstr = BattleScript_CheekPouchActivates;

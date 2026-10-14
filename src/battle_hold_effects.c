@@ -64,6 +64,7 @@ enum ItemEffect TryBoosterEnergy(enum BattlerId battler, enum Ability ability)
         gBattleMons[battler].volatiles.paradoxBoostedStat = GetParadoxHighestStatId(battler);
         PREPARE_STAT_BUFFER(gBattleTextBuff1, gBattleMons[battler].volatiles.paradoxBoostedStat);
         gBattlerAbility = gBattleScripting.battler = battler;
+        gLastUsedAbility = AbilityOrLearned(battler, ability, ABILITY_PROTOSYNTHESIS) ? ABILITY_PROTOSYNTHESIS : ABILITY_QUARK_DRIVE;
         gBattleMons[battler].volatiles.boosterEnergyActivated = TRUE;
         RecordAbilityBattle(battler, ability);
         BattleScriptCall(BattleScript_BoosterEnergy);
@@ -869,6 +870,7 @@ static enum ItemEffect ItemRestorePp(enum BattlerId battler, enum Item itemId)
         {
             ppRestored *= 2;
             gBattlerAbility = battler;
+            gLastUsedAbility = ABILITY_RIPEN;
         }
         changedPP = currentPP + ppRestored;
         if (changedPP > maxPP)

@@ -748,7 +748,8 @@ static bool32 IsMirrorArmorReflected(struct BattleCalcValues *cv, struct StatCha
         st->silentFailure = FALSE; // Mirror Armor still deflects damaging move stat drops
         st->script = BattleScript_MirrorArmorReflect;
         gBattlerAbility = cv->battlerDef;
-        RecordAbilityBattle(cv->battlerDef, cv->abilities[cv->battlerDef]);
+        gLastUsedAbility = ABILITY_MIRROR_ARMOR;
+        RecordAbilityBattle(cv->battlerDef, ABILITY_MIRROR_ARMOR);
 
         if (st->stickyWeb)
         {

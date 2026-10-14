@@ -278,6 +278,7 @@ static bool32 FirstEventBlockEvents(struct BattleCalcValues *calcValues)
         else if (EmergencyExitCanBeTriggered(battler, calcValues->abilities[battler]))
         {
             gBattleScripting.battler = gBattlerAbility = battler;
+            gLastUsedAbility = GetEmergencyExitAbility(battler);
             gBattleStruct->battlerState[battler].forcedSwitch = FALSE;
             gBattleStruct->eventState.switchIn = 0;
             gBattleStruct->eventState.switchInAbilitySlot = 0;
