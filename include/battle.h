@@ -702,6 +702,8 @@ struct BattleStruct
     struct BattleGimmickData gimmick;
     const u8 *trainerSlideMsg;
     enum Ability tracedAbility[MAX_BATTLERS_COUNT];
+    u16 tracedLearnedAbility[MAX_BATTLERS_COUNT]; // Dual Emerald: what settracedability writes to the learned slot.
+    u8 tracedSlots[MAX_BATTLERS_COUNT]; // Dual Emerald: which slots settracedability writes, as 1 << enum BattlerAbilitySlot.
     struct Illusion illusion[MAX_BATTLERS_COUNT];
     enum BattlerId soulheartBattlerId;
     struct LostItem itemLost[MAX_BATTLE_TRAINERS][PARTY_SIZE];

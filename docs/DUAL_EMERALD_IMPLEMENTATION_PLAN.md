@@ -225,7 +225,7 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - **Popups naming the natural ability instead of the learned one that acted.** Fixed for Levitate/Eelevate, Wonder Guard/Telepathy, Overcoat (powder moves), the status blockers in `CanSetNonVolatileStatus` (Immunity, Limber, Water Veil/Water Bubble, Thermal Exchange, Vital Spirit/Insomnia, Magma Armor, Comatose/Purifying Salt, Leaf Guard, Shields Down), and end-of-turn Emergency Exit/Wimp Out. A parametrized test covers four status blockers.
 - The AI still reads the natural slot until Milestone 5; the robustness sweep runs the smart AI against every learned ability without problems.
 
-## Milestone 3: Ability-interaction rules
+## Milestone 3: Ability-interaction rules ✅ Complete
 
 **Decisions beyond the design doc** (user, 2026-10-14):
 - Mummy/Lingering Aroma in the learned slot fills an attacker's *empty* learned slot.
@@ -247,9 +247,10 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - Supporting changes:
   - The slot dispatchers record the slot whose ability is running in `gBattleStruct->firingAbilitySlot` (natural otherwise).
   - Learned-slot variants of the Mummy and Wandering Spirit scripts use the new `setlastusedabilitytolearned` command, so popups and messages name the learned slots.
-- 3.6 Power of Alchemy / Receiver.
-- 3.7 Trace.
-- 3.8 Truant twice.
+- 3.6 ✅ Power of Alchemy / Receiver (`rule_receiver.c`, 5 tests). They copy both slots of the fainted ally exactly, and an empty learned slot copies as empty. A slot whose ally ability can't be copied keeps the receiver's own ability. They activate only if there's a non-empty ability to copy. `settracedability` now writes the slots chosen in `gBattleStruct->tracedSlots`, with the learned value in `tracedLearnedAbility`. Illusion test included: neither Receiver nor Role Play can copy it.
+- 3.7 ✅ Trace (`rule_trace.c`, 6 tests). Natural Trace is unchanged: it copies a foe's natural ability into the natural slot. Learned Trace (`TryLearnedTrace`) picks uniformly from every non-empty, traceable ability in all foes' slots and copies it into the learned slot. It has its own `learnedTraceActivated` volatile, so natural and learned Trace both activate.
+- 3.8 ✅ Truant twice (`rule_truant.c`). With Truant in both slots, only one slot toggles the shared `truantCounter`; before, the two toggles cancelled and the holder never loafed.
+- Signature-ability immunity is tested within each rule's file: Gastro Acid, Simple Beam, Mummy, Wandering Spirit (cantBeSwapped) and Receiver (cantBeCopied).
 
 There's one test file for each rule in the design doc:
 - Mummy / Lingering Aroma: same slot as the foe's.

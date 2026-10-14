@@ -3093,6 +3093,50 @@ static bool32 TryDancer(void)
     return FALSE;
 }
 
+// Dual Emerald: learned Trace copies an ability picked uniformly from every non-empty, traceable
+// ability in any foe's slots (user's ruling), into the learned slot.
+static u32 TryLearnedTrace(enum BattlerId battler)
+{
+    enum Ability abilities[MAX_BATTLERS_COUNT * NUM_BATTLER_ABILITY_SLOTS];
+    enum BattlerId owners[MAX_BATTLERS_COUNT * NUM_BATTLER_ABILITY_SLOTS];
+    u32 count = 0;
+
+    if (gBattleMons[battler].volatiles.learnedTraceActivated)
+        return 0;
+
+    for (enum BattlerId foe = 0; foe < gBattlersCount; foe++)
+    {
+        if (IsBattlerAlly(battler, foe) || gBattleMons[foe].hp == 0)
+            continue;
+        for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
+        {
+            enum Ability ability = GetBattlerRawAbilityInSlot(foe, slot);
+            if (ability != ABILITY_NONE && !gAbilitiesInfo[ability].cantBeTraced)
+            {
+                abilities[count] = ability;
+                owners[count] = foe;
+                count++;
+            }
+        }
+    }
+    if (count == 0)
+        return 0;
+
+    gBattleMons[battler].volatiles.learnedTraceActivated = TRUE;
+    if (GetBattlerHoldEffectIgnoreAbility(battler) == HOLD_EFFECT_ABILITY_SHIELD)
+        return 0;
+
+    u32 pick = (count == 1) ? 0 : RandomUniform(RNG_TRACE, 0, count - 1);
+    BattleScriptCall(BattleScript_TraceActivates);
+    gBattleScripting.abilityPopupOverwrite = ABILITY_TRACE; // the popup names the learned Trace
+    gBattleStruct->tracedLearnedAbility[battler] = gLastUsedAbility = abilities[pick];
+    gBattleStruct->tracedSlots[battler] = 1u << BATTLER_ABILITY_LEARNED;
+    RecordAbilityBattle(owners[pick], gLastUsedAbility);
+    PREPARE_MON_NICK_WITH_PREFIX_LOWER_BUFFER(gBattleTextBuff1, owners[pick], gBattlerPartyIndexes[owners[pick]])
+    PREPARE_ABILITY_BUFFER(gBattleTextBuff2, gLastUsedAbility)
+    return 1;
+}
+
 u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger)
 {
     u32 effect = 0;
@@ -3147,6 +3191,11 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
         switch (gLastUsedAbility)
         {
         case ABILITY_TRACE:
+            if (gBattleStruct->firingAbilitySlot == BATTLER_ABILITY_LEARNED)
+            {
+                effect = TryLearnedTrace(battler);
+                break;
+            }
             if (!gBattleMons[battler].volatiles.traceActivated)
             {
                 enum BattlerId chosenTarget;
@@ -3179,6 +3228,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                         break;
                     BattleScriptCall(BattleScript_TraceActivates);
                     gBattleStruct->tracedAbility[battler] = gLastUsedAbility = gBattleMons[chosenTarget].ability;
+                    gBattleStruct->tracedSlots[battler] = 1u << BATTLER_ABILITY_NATURAL;
                     RecordAbilityBattle(chosenTarget, gLastUsedAbility); // Record the opposing battler has this ability
                     PREPARE_MON_NICK_WITH_PREFIX_LOWER_BUFFER(gBattleTextBuff1, chosenTarget, gBattlerPartyIndexes[chosenTarget])
                     PREPARE_ABILITY_BUFFER(gBattleTextBuff2, gLastUsedAbility)
@@ -3784,7 +3834,10 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 }
                 break;
             case ABILITY_TRUANT:
-                gBattleMons[gBattlerAttacker].volatiles.truantCounter ^= 1;
+                // Dual Emerald: Truant held twice shares one "loafed last turn" state, so only one
+                // slot toggles it.
+                if (gBattleStruct->firingAbilitySlot == BATTLER_ABILITY_NATURAL || GetBattlerAbility(battler) != ABILITY_TRUANT)
+                    gBattleMons[gBattlerAttacker].volatiles.truantCounter ^= 1;
                 break;
             case ABILITY_SLOW_START:
                 if (gBattleMons[battler].volatiles.slowStartTimer > 0 && --gBattleMons[battler].volatiles.slowStartTimer == 0)
@@ -11334,7 +11387,7 @@ void RemoveLearnedAbilityFlags(enum BattlerId battler)
     if (ability == ABILITY_UNBURDEN)
         gBattleMons[battler].volatiles.unburdenActive = FALSE;
     if (ability == ABILITY_TRACE)
-        gBattleMons[battler].volatiles.traceActivated = FALSE;
+        gBattleMons[battler].volatiles.learnedTraceActivated = FALSE;
     RemoveFlagsOfAbility(battler, ability);
 }
 

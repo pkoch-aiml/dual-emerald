@@ -10696,7 +10696,17 @@ void BS_SetTracedAbility(void)
 {
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    gBattleMons[battler].ability = gBattleMons[battler].volatiles.overwrittenAbility = gBattleStruct->tracedAbility[battler];
+    u32 slots = gBattleStruct->tracedSlots[battler];
+
+    // Dual Emerald: writes the slots that Trace or Receiver chose.
+    if (slots & (1u << BATTLER_ABILITY_NATURAL))
+        gBattleMons[battler].ability = gBattleMons[battler].volatiles.overwrittenAbility = gBattleStruct->tracedAbility[battler];
+    if (slots & (1u << BATTLER_ABILITY_LEARNED))
+    {
+        RemoveLearnedAbilityFlags(battler);
+        SetBattlerLearnedAbility(battler, gBattleStruct->tracedLearnedAbility[battler]);
+    }
+    gBattleStruct->tracedSlots[battler] = 0;
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
@@ -11147,13 +11157,26 @@ void BS_TryActivateReceiver(void)
     enum BattlerId receiverBattler = GetPartnerBattler(faintedBattler);
     enum Ability receiverAbility = GetBattlerAbility(receiverBattler);
 
+    // Dual Emerald: copies every slot of the fainted ally exactly, an empty learned slot included
+    // (user's ruling). A slot holding an uncopyable ability keeps the receiver's own ability, and it
+    // activates only if there's a non-empty ability to copy.
+    enum Ability faintedNatural = gBattleMons[faintedBattler].ability;
+    enum Ability faintedLearned = gBattleMons[faintedBattler].learnedAbility;
+    bool32 copyNatural = !gAbilitiesInfo[faintedNatural].cantBeCopied;
+    bool32 copyLearned = !gAbilitiesInfo[faintedLearned].cantBeCopied;
+
     if (IsBattlerAlive(receiverBattler)
      && (AbilityOrLearned(receiverBattler, receiverAbility, ABILITY_RECEIVER) || AbilityOrLearned(receiverBattler, receiverAbility, ABILITY_POWER_OF_ALCHEMY))
      && GetBattlerHoldEffectIgnoreAbility(receiverBattler) != HOLD_EFFECT_ABILITY_SHIELD
-     && !gAbilitiesInfo[gBattleMons[faintedBattler].ability].cantBeCopied)
+     && (copyNatural || (copyLearned && faintedLearned != ABILITY_NONE)))
     {
+        enum Ability naturalAbility = gBattleMons[receiverBattler].ability;
         gBattlerAbility = receiverBattler;
-        gBattleStruct->tracedAbility[receiverBattler] = gBattleMons[faintedBattler].ability; // re-using the variable for trace
+        gLastUsedAbility = (naturalAbility == ABILITY_RECEIVER || naturalAbility == ABILITY_POWER_OF_ALCHEMY) ? naturalAbility : gBattleMons[receiverBattler].learnedAbility;
+        gBattleStruct->tracedAbility[receiverBattler] = faintedNatural; // re-using the variable for trace
+        gBattleStruct->tracedLearnedAbility[receiverBattler] = faintedLearned;
+        gBattleStruct->tracedSlots[receiverBattler] = (copyNatural ? (1u << BATTLER_ABILITY_NATURAL) : 0)
+                                                    | (copyLearned ? (1u << BATTLER_ABILITY_LEARNED) : 0);
         gBattleScripting.battler = faintedBattler;
         BattleScriptPush(cmd->nextInstr);
         gBattlescriptCurrInstr = BattleScript_ReceiverActivates;
