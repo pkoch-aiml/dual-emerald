@@ -429,7 +429,7 @@ enum DamageCategory GetReflectDamageMoveDamageCategory(enum BattlerId battler, e
 
 bool32 ShouldTeraShellDistortTypeMatchups(struct DamageContext *ctx)
 {
-    if (ctx->abilities[ctx->battlerDef] == ABILITY_TERA_SHELL
+    if (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_TERA_SHELL)
      && gBattleMons[ctx->battlerDef].species == SPECIES_TERAPAGOS_TERASTAL
      && gBattleMons[ctx->battlerDef].hp == gBattleMons[ctx->battlerDef].maxHP
      && !IsBattleMoveStatus(ctx->move))
@@ -2294,7 +2294,7 @@ bool32 CanTargetBlockPranksterMove(struct DamageContext *ctx, s32 movePriority)
     if (movePriority <= 0
      || !IsBattleMoveStatus(ctx->move)
      || !BlocksPrankster(ctx->move, ctx->battlerAtk, ctx->battlerDef, TRUE)
-     || (IsBattleMoveStatus(ctx->move) && (ctx->abilities[ctx->battlerDef] == ABILITY_MAGIC_BOUNCE || gProtectStructs[ctx->battlerDef].bounceMove)))
+     || (IsBattleMoveStatus(ctx->move) && (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_MAGIC_BOUNCE) || gProtectStructs[ctx->battlerDef].bounceMove)))
         return FALSE;
 
     if (ctx->runScript)
@@ -4045,7 +4045,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 if (CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, cv.abilities[gBattlerAttacker], cv.holdEffects[gBattlerAttacker], move))
                     break;
 
-                if (TryStatChange(&cv, &st) == STAT_CHANGE_WORKED || cv.abilities[gBattlerAttacker] == ABILITY_MIRROR_ARMOR)
+                if (TryStatChange(&cv, &st) == STAT_CHANGE_WORKED || AbilityOrLearned(gBattlerAttacker, cv.abilities[gBattlerAttacker], ABILITY_MIRROR_ARMOR))
                 {
                     gEffectBattler = gBattlerAbility = gBattlerTarget;
                     SetStatChange(gBattlerAttacker, STAT_SPEED, -1);
@@ -4942,6 +4942,10 @@ enum Ability GetBattlerAbilityInternal(enum BattlerId battler, bool32 ignoreMold
     return GetBattlerAbilityInSlotInternal(battler, BATTLER_ABILITY_NATURAL, ignoreMoldBreaker, noAbilityShield);
 }
 
+// Set while evaluating a party or overworld mon through battle helpers that use a placeholder
+// battler ID, so AbilityOrLearned doesn't read that battler's learned slot.
+bool8 gIgnoreLearnedAbilities = FALSE;
+
 enum Ability GetBattlerRawAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot)
 {
     if (slot == BATTLER_ABILITY_LEARNED)
@@ -5005,7 +5009,8 @@ bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, b
         return FALSE;
     for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
     {
-        if (GetBattlerAbilityInSlotInternal(battler, slot, ignoreMoldBreaker, noAbilityShield) == ability)
+        if (GetBattlerRawAbilityInSlot(battler, slot) == ability
+         && GetBattlerAbilityInSlotInternal(battler, slot, ignoreMoldBreaker, noAbilityShield) == ability)
             return TRUE;
     }
     return FALSE;
@@ -5024,16 +5029,13 @@ enum Ability GetBattlerPopupAbility(enum BattlerId battler)
     return gBattleMons[battler].ability;
 }
 
-// For code that receives a battler's ability as a value (a parameter or a cached array) rather
-// than looking it up: TRUE if that value is abilityToCheck, or if the battler's current in-battle
-// learned slot (after suppression) is abilityToCheck.
-bool32 AbilityOrLearned(enum BattlerId battler, enum Ability ability, enum Ability abilityToCheck)
+// Slow path of AbilityOrLearned (battle_util.h), reached only when the raw learned slot matches.
+bool32 IsLearnedAbilityActive(enum BattlerId battler, enum Ability ability)
 {
-    if (ability == abilityToCheck)
-        return TRUE;
-    if (abilityToCheck == ABILITY_NONE || battler >= MAX_BATTLERS_COUNT)
+    // No live battler to consult: outside battle, or while evaluating a mon that isn't on the field.
+    if (gBattleStruct == NULL || gIgnoreLearnedAbilities)
         return FALSE;
-    return GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED) == abilityToCheck;
+    return GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED) == ability;
 }
 
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability)
@@ -5957,7 +5959,7 @@ bool32 IsBattlerProtected(struct BattleCalcValues *cv)
         if (IsZMove(cv->move) || IsMaxMove(cv->move))
             return FALSE; // Z-Moves and Max Moves bypass protection (except Max Guard).
 
-        if ((cv->abilities[cv->battlerAtk] == ABILITY_UNSEEN_FIST || cv->abilities[cv->battlerAtk] == ABILITY_PIERCING_DRILL)
+        if ((AbilityOrLearned(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_UNSEEN_FIST) || AbilityOrLearned(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_PIERCING_DRILL))
          && IsMoveMakingContact(cv->battlerAtk, cv->battlerDef, cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk], cv->move))
         {
             gSpecialStatuses[cv->battlerDef].breaksThroughProtectFully = TRUE;
@@ -6366,7 +6368,7 @@ static inline u32 CalcMoveBasePower(struct DamageContext *ctx)
         break;
     case EFFECT_DOUBLE_POWER_ON_ARG_STATUS:
         // Comatose targets treated as if asleep
-        if ((gBattleMons[battlerDef].status1 | (STATUS1_SLEEP * (ctx->abilities[ctx->battlerDef] == ABILITY_COMATOSE))) & GetMoveEffectArg_Status(move)
+        if ((gBattleMons[battlerDef].status1 | (STATUS1_SLEEP * (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_COMATOSE)))) & GetMoveEffectArg_Status(move)
          && !((GetMoveAdditionalEffectById(move, 0)->moveEffect == MOVE_EFFECT_REMOVE_STATUS) && DoesSubstituteBlockMove(battlerAtk, battlerDef, move)))
             basePower *= 2;
         break;
@@ -7000,7 +7002,7 @@ static inline u32 CalcAttackStat(struct DamageContext *ctx)
     if (ctx->isCrit && atkStage < DEFAULT_STAT_STAGE)
         atkStage = DEFAULT_STAT_STAGE;
     // Pokémon with unaware ignore attack stat changes while taking damage
-    if (ctx->abilities[ctx->battlerDef] == ABILITY_UNAWARE)
+    if (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_UNAWARE))
         atkStage = DEFAULT_STAT_STAGE;
 
     atkStat *= gStatStageRatios[atkStage][0];
@@ -7170,10 +7172,10 @@ static inline u32 CalcAttackStat(struct DamageContext *ctx)
     }
 
     // Ruin field effects
-    if (IsBattleMoveSpecial(move) && ctx->abilities[ctx->battlerAtk] != ABILITY_VESSEL_OF_RUIN && IsRuinStatusActive(VOLATILE_VESSEL_OF_RUIN))
+    if (IsBattleMoveSpecial(move) && !AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_VESSEL_OF_RUIN) && IsRuinStatusActive(VOLATILE_VESSEL_OF_RUIN))
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
-    if (IsBattleMovePhysical(move) && ctx->abilities[ctx->battlerAtk] != ABILITY_TABLETS_OF_RUIN && IsRuinStatusActive(VOLATILE_TABLETS_OF_RUIN))
+    if (IsBattleMovePhysical(move) && !AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_TABLETS_OF_RUIN) && IsRuinStatusActive(VOLATILE_TABLETS_OF_RUIN))
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
     // attacker's hold effect
@@ -7274,7 +7276,7 @@ static inline u32 CalcDefenseStat(struct DamageContext *ctx)
     if (ctx->isCrit && defStage > DEFAULT_STAT_STAGE)
         defStage = DEFAULT_STAT_STAGE;
     // Pokémon with unaware ignore defense stat changes while dealing damage
-    if (ctx->abilities[ctx->battlerAtk] == ABILITY_UNAWARE)
+    if (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_UNAWARE))
         defStage = DEFAULT_STAT_STAGE;
     // certain moves also ignore stat changes
     if (MoveIgnoresDefenseEvasionStages(move))
@@ -7345,10 +7347,10 @@ static inline u32 CalcDefenseStat(struct DamageContext *ctx)
     }
 
     // Ruin field effects
-    if (usesDefStat && ctx->abilities[ctx->battlerDef] != ABILITY_SWORD_OF_RUIN && IsRuinStatusActive(VOLATILE_SWORD_OF_RUIN))
+    if (usesDefStat && !AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_SWORD_OF_RUIN) && IsRuinStatusActive(VOLATILE_SWORD_OF_RUIN))
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
-    if (!usesDefStat && ctx->abilities[ctx->battlerDef] != ABILITY_BEADS_OF_RUIN && IsRuinStatusActive(VOLATILE_BEADS_OF_RUIN))
+    if (!usesDefStat && !AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_BEADS_OF_RUIN) && IsRuinStatusActive(VOLATILE_BEADS_OF_RUIN))
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
     // target's hold effects
@@ -7437,7 +7439,7 @@ static inline uq4_12_t GetSameTypeAttackBonusModifier(struct DamageContext *ctx)
         if ((IS_BATTLER_OF_TYPE(ctx->battlerAtk, ctx->moveType) && ctx->move != MOVE_STRUGGLE)
          || (gBattleStruct->pledgeState == PLEDGE_COMBO_ATTACK && IS_BATTLER_OF_TYPE(GetPartnerBattler(ctx->battlerAtk), ctx->moveType)))
         {
-            return ctx->abilities[ctx->battlerAtk] == ABILITY_ADAPTABILITY ? UQ_4_12(2.0) : UQ_4_12(1.5);
+            return AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_ADAPTABILITY) ? UQ_4_12(2.0) : UQ_4_12(1.5);
         }
     }
 
@@ -7479,7 +7481,7 @@ static inline uq4_12_t GetBurnOrFrostBiteModifier(struct DamageContext *ctx)
     if (gBattleMons[ctx->battlerAtk].status1 & STATUS1_BURN
         && IsBattleMovePhysical(ctx->move)
         && (GetConfig(B_BURN_FACADE_DMG) < GEN_6 || moveEffect != EFFECT_FACADE)
-        && ctx->abilities[ctx->battlerAtk] != ABILITY_GUTS)
+        && !AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_GUTS))
         return UQ_4_12(0.5);
     if (gBattleMons[ctx->battlerAtk].status1 & STATUS1_FROSTBITE
         && IsBattleMoveSpecial(ctx->move)
@@ -7510,7 +7512,7 @@ static inline uq4_12_t GetMoveAgainstProtectionModifier(struct DamageContext *ct
     // Unseen Fist and Piercing Drill
     u32 protected = gProtectStructs[ctx->battlerDef].protected;
     if (GetProtectType(protected) == PROTECT_TYPE_SINGLE && protected != PROTECT_MAX_GUARD
-         && (ctx->abilities[ctx->battlerAtk] == ABILITY_UNSEEN_FIST || ctx->abilities[ctx->battlerAtk] == ABILITY_PIERCING_DRILL)
+         && (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_UNSEEN_FIST) || AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_PIERCING_DRILL))
          && GetConfig(B_UNSEEN_FIST_PIERCING_DRILL) >= GEN_CHAMPIONS)
         return UQ_4_12(0.25);
 
@@ -7562,7 +7564,7 @@ static inline uq4_12_t GetScreensModifier(struct DamageContext *ctx)
     {
         return UQ_4_12(1.0);
     }
-    if (ctx->abilities[ctx->battlerAtk] == ABILITY_INFILTRATOR && !IsBattlerAlly(ctx->battlerAtk, ctx->battlerDef))
+    if (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_INFILTRATOR) && !IsBattlerAlly(ctx->battlerAtk, ctx->battlerDef))
     {
         if (ctx->updateFlags)
             RecordAbilityBattle(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk]);
@@ -7723,7 +7725,7 @@ static inline uq4_12_t GetDefenderItemsModifier(struct DamageContext *ctx)
                 gSpecialStatuses[ctx->battlerDef].berryReduced = TRUE;
             if (ctx->aiCalc && AI_DAMAGES_THROUGH_BERRIES)
                 ctx->aiCheckBerryModifier = TRUE;
-            return (ctx->abilities[ctx->battlerDef] == ABILITY_RIPEN) ? UQ_4_12(0.25) : UQ_4_12(0.5);
+            return (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_RIPEN)) ? UQ_4_12(0.25) : UQ_4_12(0.5);
         }
         break;
     default:
@@ -8042,7 +8044,7 @@ s32 CalcCritChanceStage(struct DamageContext *ctx)
     }
     else if (gBattleMons[ctx->battlerAtk].volatiles.laserFocusTimer > 0
           || MoveAlwaysCrits(ctx->move)
-          || (ctx->abilities[ctx->battlerAtk] == ABILITY_MERCILESS && gBattleMons[ctx->battlerDef].status1 & STATUS1_PSN_ANY))
+          || (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_MERCILESS) && gBattleMons[ctx->battlerDef].status1 & STATUS1_PSN_ANY))
     {
         critChance = CRITICAL_HIT_ALWAYS;
     }
@@ -8053,14 +8055,14 @@ s32 CalcCritChanceStage(struct DamageContext *ctx)
                     + GetMoveCriticalHitStage(ctx->move)
                     + GetHoldEffectCritChanceIncrease(ctx->battlerAtk, ctx->holdEffects[ctx->battlerAtk])
                     + ((B_AFFECTION_MECHANICS == TRUE && GetBattlerAffectionHearts(ctx->battlerAtk) == AFFECTION_FIVE_HEARTS) ? 2 : 0)
-                    + (ctx->abilities[ctx->battlerAtk] == ABILITY_SUPER_LUCK ? 1 : 0)
+                    + (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_SUPER_LUCK) ? 1 : 0)
                     + gBattleMons[ctx->battlerAtk].volatiles.bonusCritStages;
 
         if (critChance >= ARRAY_COUNT(sCriticalHitOdds))
             critChance = ARRAY_COUNT(sCriticalHitOdds) - 1;
     }
 
-    if (critChance != CRITICAL_HIT_BLOCKED && (ctx->abilities[ctx->battlerDef] == ABILITY_BATTLE_ARMOR || ctx->abilities[ctx->battlerDef] == ABILITY_SHELL_ARMOR))
+    if (critChance != CRITICAL_HIT_BLOCKED && (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_BATTLE_ARMOR) || AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_SHELL_ARMOR)))
     {
         // Record ability only if move had 100% chance to get a crit
         if (ctx->updateFlags)
@@ -8106,13 +8108,13 @@ s32 CalcCritChanceStageGen1(struct DamageContext *ctx)
     if (holdEffectCritStage > 0)
         critChance *= 4 * holdEffectCritStage;
 
-    if (ctx->abilities[ctx->battlerAtk] == ABILITY_SUPER_LUCK)
+    if (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_SUPER_LUCK))
         critChance *= 4;
 
     if (critChance > 255)
         critChance = 255;
 
-    if (ctx->abilities[ctx->battlerDef] == ABILITY_BATTLE_ARMOR || ctx->abilities[ctx->battlerDef] == ABILITY_SHELL_ARMOR)
+    if (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_BATTLE_ARMOR) || AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_SHELL_ARMOR))
     {
         if (ctx->updateFlags)
             RecordAbilityBattle(ctx->battlerDef, ctx->abilities[ctx->battlerDef]);
@@ -8120,7 +8122,7 @@ s32 CalcCritChanceStageGen1(struct DamageContext *ctx)
     }
     else if (gBattleMons[ctx->battlerAtk].volatiles.laserFocusTimer > 0
           || MoveAlwaysCrits(ctx->move)
-          || (ctx->abilities[ctx->battlerAtk] == ABILITY_MERCILESS && gBattleMons[ctx->battlerDef].status1 & STATUS1_PSN_ANY))
+          || (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_MERCILESS) && gBattleMons[ctx->battlerDef].status1 & STATUS1_PSN_ANY))
     {
         critChance = CRITICAL_HIT_ALWAYS;
     }
@@ -8190,7 +8192,7 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
     {
         enduredHit = TRUE;
     }
-    else if (GetConfig(B_STURDY) >= GEN_5 && ctx->abilities[ctx->battlerDef] == ABILITY_STURDY && IsBattlerAtMaxHp(ctx->battlerDef))
+    else if (GetConfig(B_STURDY) >= GEN_5 && AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_STURDY) && IsBattlerAtMaxHp(ctx->battlerDef))
     {
         enduredHit = TRUE;
         RecordAbilityBattle(ctx->battlerDef, ABILITY_STURDY);
@@ -8264,7 +8266,7 @@ static inline void MulByTypeEffectiveness(struct DamageContext *ctx, uq4_12_t *m
         mod = UQ_4_12(1.0);
     }
     else if ((ctx->moveType == TYPE_FIGHTING || ctx->moveType == TYPE_NORMAL) && defType == TYPE_GHOST
-        && (ctx->abilities[ctx->battlerAtk] == ABILITY_SCRAPPY || ctx->abilities[ctx->battlerAtk] == ABILITY_MINDS_EYE)
+        && (AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_SCRAPPY) || AbilityOrLearned(ctx->battlerAtk, ctx->abilities[ctx->battlerAtk], ABILITY_MINDS_EYE))
         && mod == UQ_4_12(0.0))
     {
         mod = UQ_4_12(1.0);
@@ -8384,7 +8386,7 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(struct DamageCont
         && !(ctx->holdEffects[ctx->battlerDef] == HOLD_EFFECT_RING_TARGET && IS_BATTLER_OF_TYPE(ctx->battlerDef, TYPE_FLYING) && !IsBattlerUngroundedByAbilityItemOrEffect(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ctx->holdEffects[ctx->battlerDef])))
     {
         modifier = UQ_4_12(0.0);
-        if (ctx->updateFlags && (ctx->abilities[ctx->battlerDef] == ABILITY_LEVITATE || ctx->abilities[ctx->battlerDef] == ABILITY_EELEVATE))
+        if (ctx->updateFlags && (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_LEVITATE) || AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_EELEVATE)))
         {
             gBattleStruct->moveResultFlags[ctx->battlerDef] |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
             gLastUsedAbility = ctx->abilities[ctx->battlerDef];
@@ -8420,8 +8422,8 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(struct DamageCont
         modifier = UQ_4_12(1.0);
     }
 
-    if (((ctx->abilities[ctx->battlerDef] == ABILITY_WONDER_GUARD && modifier <= UQ_4_12(1.0) && !isPresentHealing)
-        || (ctx->abilities[ctx->battlerDef] == ABILITY_TELEPATHY && ctx->battlerDef == GetPartnerBattler(ctx->battlerAtk)))
+    if (((AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_WONDER_GUARD) && modifier <= UQ_4_12(1.0) && !isPresentHealing)
+        || (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_TELEPATHY) && ctx->battlerDef == GetPartnerBattler(ctx->battlerAtk)))
         && GetMovePower(ctx->move) != 0)
     {
         modifier = UQ_4_12(0.0);
@@ -8494,9 +8496,11 @@ uq4_12_t CalcPartyMonTypeEffectivenessMultiplier(enum Move move, enum Species sp
         ctx.updateFlags = FALSE;
         ctx.abilities[B_BATTLER_0] = abilityDef;
 
+        gIgnoreLearnedAbilities = TRUE;
         MulByTypeEffectiveness(&ctx, &modifier, GetSpeciesType(speciesDef, 0));
         if (GetSpeciesType(speciesDef, 1) != GetSpeciesType(speciesDef, 0))
             MulByTypeEffectiveness(&ctx, &modifier, GetSpeciesType(speciesDef, 1));
+        gIgnoreLearnedAbilities = FALSE;
 
         if (ctx.moveType == TYPE_GROUND
          && (abilityDef == ABILITY_LEVITATE || abilityDef == ABILITY_EELEVATE)
@@ -10486,7 +10490,7 @@ bool32 CanMoveSkipAccuracyCalc(struct BattleCalcValues *cv, u32 weather, enum Re
     {
         effect = TRUE;
     }
-    else if (cv->abilities[battlerAtk] == ABILITY_NO_GUARD
+    else if (AbilityOrLearned(battlerAtk, cv->abilities[battlerAtk], ABILITY_NO_GUARD)
           && gBattleMons[battlerDef].volatiles.semiInvulnerable != STATE_COMMANDER
           && !shouldAvoidSkyDropBattlers)
     {
@@ -10494,7 +10498,7 @@ bool32 CanMoveSkipAccuracyCalc(struct BattleCalcValues *cv, u32 weather, enum Re
         ability = ABILITY_NO_GUARD;
         abilityBattler = battlerAtk;
     }
-    else if (cv->abilities[battlerDef] == ABILITY_NO_GUARD && !shouldAvoidSkyDropBattlers)
+    else if (AbilityOrLearned(battlerDef, cv->abilities[battlerDef], ABILITY_NO_GUARD) && !shouldAvoidSkyDropBattlers)
     {
         effect = TRUE;
         ability = ABILITY_NO_GUARD;
@@ -10559,14 +10563,14 @@ u32 GetTotalAccuracy(struct BattleCalcValues *cv, u32 weather)
     accStage = gBattleMons[battlerAtk].statStages[STAT_ACC];
     evasionStage = gBattleMons[battlerDef].statStages[STAT_EVASION];
 
-    if (cv->abilities[battlerAtk] == ABILITY_UNAWARE
-     || cv->abilities[battlerAtk] == ABILITY_KEEN_EYE
-     || cv->abilities[battlerAtk] == ABILITY_MINDS_EYE
-     || (GetConfig(B_ILLUMINATE_EFFECT) >= GEN_9 && cv->abilities[battlerAtk] == ABILITY_ILLUMINATE))
+    if (AbilityOrLearned(battlerAtk, cv->abilities[battlerAtk], ABILITY_UNAWARE)
+     || AbilityOrLearned(battlerAtk, cv->abilities[battlerAtk], ABILITY_KEEN_EYE)
+     || AbilityOrLearned(battlerAtk, cv->abilities[battlerAtk], ABILITY_MINDS_EYE)
+     || (GetConfig(B_ILLUMINATE_EFFECT) >= GEN_9 && AbilityOrLearned(battlerAtk, cv->abilities[battlerAtk], ABILITY_ILLUMINATE)))
         evasionStage = DEFAULT_STAT_STAGE;
     if (MoveIgnoresDefenseEvasionStages(cv->move))
         evasionStage = DEFAULT_STAT_STAGE;
-    if (cv->abilities[battlerDef] == ABILITY_UNAWARE)
+    if (AbilityOrLearned(battlerDef, cv->abilities[battlerDef], ABILITY_UNAWARE))
         accStage = DEFAULT_STAT_STAGE;
 
     if (gBattleMons[battlerDef].volatiles.foresight || gBattleMons[battlerDef].volatiles.miracleEye)
@@ -10586,7 +10590,7 @@ u32 GetTotalAccuracy(struct BattleCalcValues *cv, u32 weather)
     if ((attackerWeather & B_WEATHER_SUN) && MoveHas50AccuracyInSun(cv->move))
         moveAcc = 50;
     // Check Wonder Skin.
-    if (cv->abilities[battlerDef] == ABILITY_WONDER_SKIN && IsBattleMoveStatus(cv->move) && moveAcc > 50)
+    if (AbilityOrLearned(battlerDef, cv->abilities[battlerDef], ABILITY_WONDER_SKIN) && IsBattleMoveStatus(cv->move) && moveAcc > 50)
         moveAcc = 50;
 
     u32 calc = gAccuracyStageRatios[buff].dividend * moveAcc;
@@ -10703,7 +10707,7 @@ bool32 DoesOHKOMoveMissTarget(struct BattleCalcValues *cv)
         return TRUE;
     }
 
-    if (cv->abilities[cv->battlerDef] == ABILITY_STURDY)
+    if (AbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_STURDY))
     {
         gBattleStruct->moveResultFlags[cv->battlerDef] |= MOVE_RESULT_ONE_HIT_KO_STURDY;
         return TRUE;

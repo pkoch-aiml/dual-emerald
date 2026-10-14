@@ -70,7 +70,7 @@ static void HandleSetEffectConfusion(struct BattleCalcValues *cv, struct SetEffe
 
 static void HandleSetEffectFlinch(struct BattleCalcValues *cv, struct SetEffect *se)
 {
-    if (cv->abilities[se->effectBattler] == ABILITY_INNER_FOCUS)
+    if (AbilityOrLearned(se->effectBattler, cv->abilities[se->effectBattler], ABILITY_INNER_FOCUS))
     {
         if (se->primary || se->certain)
         {
@@ -118,7 +118,7 @@ static void HandleSetEffectAbsorb(struct BattleCalcValues *cv, struct SetEffect 
         gEffectBattler = cv->battlerAtk;
         gBattlerAbility = gBattleScripting.battler = cv->battlerDef;
 
-        if (cv->abilities[cv->battlerDef] == ABILITY_LIQUID_OOZE
+        if (AbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_LIQUID_OOZE)
          && (GetMoveEffect(cv->move)!= EFFECT_DREAM_EATER || GetConfig(B_DREAM_EATER_LIQUID_OOZE) >= GEN_5))
         {
             SetPassiveDamageAmount(cv->battlerAtk, healAmount);
@@ -449,7 +449,7 @@ static void HandleSetEffectThroatChop(struct BattleCalcValues *cv, struct SetEff
 
 static void HandleSetEffectIncinerate(struct BattleCalcValues *cv, struct SetEffect *se)
 {
-    if (cv->abilities[se->effectBattler] == ABILITY_STICKY_HOLD)
+    if (AbilityOrLearned(se->effectBattler, cv->abilities[se->effectBattler], ABILITY_STICKY_HOLD))
         return;
 
     if (gItemsInfo[gBattleMons[se->effectBattler].item].pocket == POCKET_BERRIES
@@ -474,7 +474,7 @@ static void HandleSetEffectBugBite(struct BattleCalcValues *cv, struct SetEffect
         gBattlescriptCurrInstr = se->script;
     }
     else if (GetItemPocket(gBattleMons[se->effectBattler].item) == POCKET_BERRIES
-        && cv->abilities[se->effectBattler] != ABILITY_STICKY_HOLD)
+        && !AbilityOrLearned(se->effectBattler, cv->abilities[se->effectBattler], ABILITY_STICKY_HOLD))
     {
         // target loses their berry
         gLastUsedItem = gBattleMons[se->effectBattler].item;

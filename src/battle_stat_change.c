@@ -83,7 +83,7 @@ static bool32 CheckSpecificMoveCondition(struct BattleCalcValues *cv, struct Sta
     switch (cv->moveEffect)
     {
     case EFFECT_CAPTIVATE:
-        if (cv->abilities[cv->battlerDef] == ABILITY_OBLIVIOUS)
+        if (AbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_OBLIVIOUS))
         {
             if (!st->onlyChecking)
             {
@@ -145,7 +145,7 @@ static bool32 CheckSpecificMoveCondition(struct BattleCalcValues *cv, struct Sta
         }
         break;
     case EFFECT_SWAGGER:
-        if (cv->abilities[cv->battlerDef] == ABILITY_OWN_TEMPO)
+        if (AbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_OWN_TEMPO))
         {
             if (!st->onlyChecking)
             {
@@ -417,7 +417,7 @@ static enum StatChangeResult IncreaseStat(struct BattleCalcValues *cv, struct St
                 if (CompareStat(battler, st->stat, MAX_STAT_STAGE, CMP_EQUAL, cv->abilities[battler]))
                     continue;
 
-                if (cv->abilities[battler] == ABILITY_OPPORTUNIST && !st->opportunistActivation)
+                if (AbilityOrLearned(battler, cv->abilities[battler], ABILITY_OPPORTUNIST) && !st->opportunistActivation)
                     gProtectStructs[battler].activateOpportunist = TRUE;
 
                 if (cv->holdEffects[battler] == HOLD_EFFECT_MIRROR_HERB && !st->mirrorHerbActivation)
@@ -565,7 +565,7 @@ static bool32 IsMistProtected(struct BattleCalcValues *cv, struct StatChange *st
     if (st->certain)
         return FALSE;
 
-    if (!IsBattlerAlly(cv->battlerDef, cv->battlerAtk) && cv->abilities[cv->battlerAtk] == ABILITY_INFILTRATOR)
+    if (!IsBattlerAlly(cv->battlerDef, cv->battlerAtk) && AbilityOrLearned(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_INFILTRATOR))
         return FALSE;
 
     if (!st->onlyChecking)
@@ -587,7 +587,7 @@ static enum BattlerId StatChange_IsFlowerVeilProtected(struct BattleCalcValues *
     {
         if (!IsBattlerAlly(cv->battlerDef, battler))
             continue;
-        if (cv->abilities[battler] == ABILITY_FLOWER_VEIL)
+        if (AbilityOrLearned(battler, cv->abilities[battler], ABILITY_FLOWER_VEIL))
             return battler;
     }
 
@@ -721,7 +721,7 @@ static bool32 IsAbilityBlocked(struct BattleCalcValues *cv, struct StatChange *s
 
 static bool32 IsMirrorArmorReflected(struct BattleCalcValues *cv, struct StatChange *st)
 {
-    if (cv->abilities[cv->battlerDef] != ABILITY_MIRROR_ARMOR
+    if (!AbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_MIRROR_ARMOR)
      || st->ignoreMirrorArmored
      || st->certain)
         return FALSE;
@@ -1055,7 +1055,7 @@ bool32 CanStatChange(struct BattleCalcValues *cv, struct StatChange *st)
     {
         // Special Case for speed boost since shouldn't try to lower opposing stats on speed boost
         // Also for user it might make sense to lower the stat. Regardless this whole check is better suited for CheckViability since the move wouldn't fail in this case
-        if (cv->battlerAtk != cv->battlerDef && st->stat == STAT_SPEED && st->stage < 0 && cv->abilities[cv->battlerDef] == ABILITY_SPEED_BOOST)
+        if (cv->battlerAtk != cv->battlerDef && st->stat == STAT_SPEED && st->stage < 0 && AbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_SPEED_BOOST))
             return FALSE;
 
         if (CompareStat(cv->battlerDef, st->stat, MIN_STAT_STAGE, CMP_EQUAL, ABILITY_NONE))

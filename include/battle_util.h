@@ -2,6 +2,7 @@
 #define GUARD_BATTLE_UTIL_H
 
 #include "move.h"
+#include "pokemon.h"
 #include "constants/battle_util.h"
 #include "constants/battle_string_ids.h"
 #include "constants/hold_effects.h"
@@ -126,7 +127,22 @@ enum Ability GetBattlerAbilityInSlotInternal(enum BattlerId battler, enum Battle
 enum Ability GetBattlerAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot);
 bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability);
-bool32 AbilityOrLearned(enum BattlerId battler, enum Ability ability, enum Ability abilityToCheck);
+bool32 IsLearnedAbilityActive(enum BattlerId battler, enum Ability ability);
+extern bool8 gIgnoreLearnedAbilities;
+extern struct BattlePokemon gBattleMons[MAX_BATTLERS_COUNT];
+
+// For code that receives a battler's ability as a value (a parameter or a cached array) rather
+// than looking it up: TRUE if that value is abilityToCheck, or if the battler's current in-battle
+// learned slot (after suppression) is abilityToCheck. Inline because it runs in hot loops
+// (damage calcs, AI); the common case is a single comparison against the raw learned slot.
+static inline bool32 AbilityOrLearned(enum BattlerId battler, enum Ability ability, enum Ability abilityToCheck)
+{
+    if (ability == abilityToCheck)
+        return TRUE;
+    if (abilityToCheck == ABILITY_NONE || gBattleMons[battler].learnedAbility != abilityToCheck)
+        return FALSE;
+    return IsLearnedAbilityActive(battler, abilityToCheck);
+}
 enum Ability GetBattlerPopupAbility(enum BattlerId battler);
 bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability);
