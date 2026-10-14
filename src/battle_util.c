@@ -11231,12 +11231,10 @@ bool32 IsAffectedByPowderMove(enum BattlerId battler, enum Ability ability, enum
     return TRUE;
 }
 
-void RemoveAbilityFlags(enum BattlerId battler)
+// Clears the in-battle flags that belong to one ability.
+static void RemoveFlagsOfAbility(enum BattlerId battler, enum Ability ability)
 {
-    gBattleMons[battler].volatiles.unburdenActive = FALSE;
-    gBattleMons[battler].volatiles.traceActivated = FALSE;
-
-    switch (GetBattlerAbility(battler))
+    switch (ability)
     {
     case ABILITY_NEUTRALIZING_GAS:
         gSpecialStatuses[battler].neutralizingGasRemoved = TRUE;
@@ -11261,24 +11259,71 @@ void RemoveAbilityFlags(enum BattlerId battler)
     }
 }
 
+// Called before the natural ability is overwritten. Dual Emerald: the flags stay if the learned slot
+// holds the same ability.
+void RemoveAbilityFlags(enum BattlerId battler)
+{
+    enum Ability ability = GetBattlerAbility(battler);
+
+    gBattleMons[battler].volatiles.unburdenActive = FALSE;
+    gBattleMons[battler].volatiles.traceActivated = FALSE;
+
+    if (ability != GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED))
+        RemoveFlagsOfAbility(battler, ability);
+}
+
+// Dual Emerald: called before the learned ability is overwritten. The flags stay if the natural
+// slot holds the same ability.
+void RemoveLearnedAbilityFlags(enum BattlerId battler)
+{
+    enum Ability ability = GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED);
+
+    if (ability == ABILITY_NONE || ability == GetBattlerAbility(battler))
+        return;
+    if (ability == ABILITY_UNBURDEN)
+        gBattleMons[battler].volatiles.unburdenActive = FALSE;
+    if (ability == ABILITY_TRACE)
+        gBattleMons[battler].volatiles.traceActivated = FALSE;
+    RemoveFlagsOfAbility(battler, ability);
+}
+
+// Dual Emerald: overwrites the battler's in-battle learned slot. The party mon keeps its own learned
+// ability, so the change ends when the battler leaves the field. Call RemoveLearnedAbilityFlags first.
+void SetBattlerLearnedAbility(enum BattlerId battler, enum Ability ability)
+{
+    if (gSpecialStatuses[battler].neutralizingGasRemoved
+     && gBattleMons[battler].learnedAbility == ABILITY_NEUTRALIZING_GAS
+     && gBattleMons[battler].ability != ABILITY_NEUTRALIZING_GAS)
+    {
+        gBattleStruct->battlerState[battler].learnedNeutralizingGasRemoved = TRUE;
+        gBattleStruct->learnedAbilityReplacement[battler] = ability;
+    }
+    gBattleMons[battler].learnedAbility = ability;
+    NoteBattleLearnedAbility(ability);
+}
+
+// Called when all of the battler's abilities are suppressed. Dual Emerald: covers both slots.
 void RemoveRuinAbilityFlags(enum BattlerId battler)
 {
-    switch (GetBattlerAbility(battler))
+    for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
     {
-    case ABILITY_VESSEL_OF_RUIN:
-        gBattleMons[battler].volatiles.vesselOfRuin = FALSE;
-        break;
-    case ABILITY_TABLETS_OF_RUIN:
-        gBattleMons[battler].volatiles.tabletsOfRuin = FALSE;
-        break;
-    case ABILITY_SWORD_OF_RUIN:
-        gBattleMons[battler].volatiles.swordOfRuin = FALSE;
-        break;
-    case ABILITY_BEADS_OF_RUIN:
-        gBattleMons[battler].volatiles.beadsOfRuin = FALSE;
-        break;
-    default:
-       break;
+        switch (GetBattlerAbilityInSlot(battler, slot))
+        {
+        case ABILITY_VESSEL_OF_RUIN:
+            gBattleMons[battler].volatiles.vesselOfRuin = FALSE;
+            break;
+        case ABILITY_TABLETS_OF_RUIN:
+            gBattleMons[battler].volatiles.tabletsOfRuin = FALSE;
+            break;
+        case ABILITY_SWORD_OF_RUIN:
+            gBattleMons[battler].volatiles.swordOfRuin = FALSE;
+            break;
+        case ABILITY_BEADS_OF_RUIN:
+            gBattleMons[battler].volatiles.beadsOfRuin = FALSE;
+            break;
+        default:
+           break;
+        }
     }
 }
 

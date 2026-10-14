@@ -527,41 +527,6 @@ static void Cmd_setstealthrock(void);
 static void Cmd_trysetvolatile(void);
 static void Cmd_trysetmagiccoat(void);
 static void Cmd_trysetsnatch(void);
-static bool32 TrySwitchOutAbility(enum BattlerId battler, enum Ability ability)
-{
-    switch (ability)
-    {
-    case ABILITY_NATURAL_CURE:
-        if (gBattleMons[battler].status1 & STATUS1_SLEEP)
-            TryDeactivateSleepClause(battler, gBattlerPartyIndexes[battler]);
-
-        gBattleMons[battler].status1 = 0;
-        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE,
-                                        1u << gBattlerPartyIndexes[battler],
-                                        sizeof(gBattleMons[battler].status1),
-                                        &gBattleMons[battler].status1);
-        MarkBattlerForControllerExec(battler);
-        break;
-    case ABILITY_REGENERATOR:
-    {
-        u32 regenerate = GetNonDynamaxMaxHP(battler) / 3;
-        regenerate += gBattleMons[battler].hp;
-        if (regenerate > gBattleMons[battler].maxHP)
-            regenerate = gBattleMons[battler].maxHP;
-        gBattleMons[battler].hp = regenerate;
-        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_HP_BATTLE,
-                                        1u << gBattlerPartyIndexes[battler],
-                                        sizeof(regenerate),
-                                        &regenerate);
-        MarkBattlerForControllerExec(battler);
-        break;
-    }
-    default:
-        return FALSE;
-    }
-    BattleScriptCall(BattleScript_SwitchOutAbilityWait);
-    return TRUE;
-}
 
 static void Cmd_switchoutabilities(void);
 static bool32 TryScriptAbilitySlots(enum BattlerId battler, AbilitySlotFunc func, const u8 *thisInstr, const u8 *nextInstr);
@@ -7272,8 +7237,11 @@ static void Cmd_settoxicspikes(void)
 static void Cmd_setgastroacid(void)
 {
     CMD_ARGS(const u8 *failInstr);
+    enum Ability learnedAbility = gBattleMons[gBattlerTarget].learnedAbility;
 
-    if (gAbilitiesInfo[gBattleMons[gBattlerTarget].ability].cantBeSuppressed)
+    // Dual Emerald: suppresses every slot that can be suppressed, and fails only if neither can.
+    if (gAbilitiesInfo[gBattleMons[gBattlerTarget].ability].cantBeSuppressed
+     && (learnedAbility == ABILITY_NONE || gAbilitiesInfo[learnedAbility].cantBeSuppressed))
     {
         gBattlescriptCurrInstr = cmd->failInstr;
     }
@@ -7511,6 +7479,42 @@ static void Cmd_trysetsnatch(void)
         gProtectStructs[gBattlerAttacker].stealMove = TRUE;
         gBattlescriptCurrInstr = cmd->nextInstr;
     }
+}
+
+static bool32 TrySwitchOutAbility(enum BattlerId battler, enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_NATURAL_CURE:
+        if (gBattleMons[battler].status1 & STATUS1_SLEEP)
+            TryDeactivateSleepClause(battler, gBattlerPartyIndexes[battler]);
+
+        gBattleMons[battler].status1 = 0;
+        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE,
+                                        1u << gBattlerPartyIndexes[battler],
+                                        sizeof(gBattleMons[battler].status1),
+                                        &gBattleMons[battler].status1);
+        MarkBattlerForControllerExec(battler);
+        break;
+    case ABILITY_REGENERATOR:
+    {
+        u32 regenerate = GetNonDynamaxMaxHP(battler) / 3;
+        regenerate += gBattleMons[battler].hp;
+        if (regenerate > gBattleMons[battler].maxHP)
+            regenerate = gBattleMons[battler].maxHP;
+        gBattleMons[battler].hp = regenerate;
+        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_HP_BATTLE,
+                                        1u << gBattlerPartyIndexes[battler],
+                                        sizeof(regenerate),
+                                        &regenerate);
+        MarkBattlerForControllerExec(battler);
+        break;
+    }
+    default:
+        return FALSE;
+    }
+    BattleScriptCall(BattleScript_SwitchOutAbilityWait);
+    return TRUE;
 }
 
 static void Cmd_switchoutabilities(void)
@@ -8799,14 +8803,21 @@ static void Cmd_setnonvolatilestatus(void)
     }
 }
 
+// Dual Emerald: Simple Beam and Worry Seed overwrite the natural ability. They affect the learned slot
+// instead if the natural ability already is the new one, or is a signature ability that can't be
+// overwritten. They fail on an empty learned slot, so single-ability Pokémon behave as before.
 static void Cmd_tryoverwriteability(void)
 {
     CMD_ARGS(const u8 *failInstr);
+    enum Ability newAbility = GetMoveOverwriteAbility(gCurrentMove);
+    enum Ability naturalAbility = gBattleMons[gBattlerTarget].ability;
+    enum Ability learnedAbility = gBattleMons[gBattlerTarget].learnedAbility;
+    bool32 overwriteLearned = (naturalAbility == newAbility || gAbilitiesInfo[naturalAbility].cantBeOverwritten);
 
-    if (gAbilitiesInfo[gBattleMons[gBattlerTarget].ability].cantBeOverwritten
-     || gBattleMons[gBattlerTarget].ability == GetMoveOverwriteAbility(gCurrentMove))
+    if (overwriteLearned
+     && (learnedAbility == ABILITY_NONE || learnedAbility == newAbility || gAbilitiesInfo[learnedAbility].cantBeOverwritten))
     {
-        RecordAbilityBattle(gBattlerTarget, gBattleMons[gBattlerTarget].ability);
+        RecordAbilityBattle(gBattlerTarget, naturalAbility);
         gBattlescriptCurrInstr = cmd->failInstr;
     }
     else if (CanAbilityShieldActivateForBattler(gBattlerTarget))
@@ -8814,11 +8825,19 @@ static void Cmd_tryoverwriteability(void)
         gBattlescriptCurrInstr = BattleScript_MoveEnd;
         BattleScriptCall(BattleScript_AbilityShieldProtects);
     }
+    else if (overwriteLearned)
+    {
+        RemoveLearnedAbilityFlags(gBattlerTarget);
+        gBattleScripting.abilityPopupOverwrite = learnedAbility;
+        SetBattlerLearnedAbility(gBattlerTarget, newAbility);
+        gLastUsedAbility = newAbility; // the popup and message name the learned slot
+        gBattlescriptCurrInstr = cmd->nextInstr;
+    }
     else
     {
         RemoveAbilityFlags(gBattlerTarget);
-        gBattleScripting.abilityPopupOverwrite = gBattleMons[gBattlerTarget].ability;
-        gBattleMons[gBattlerTarget].ability = gBattleMons[gBattlerTarget].volatiles.overwrittenAbility = GetMoveOverwriteAbility(gCurrentMove);
+        gBattleScripting.abilityPopupOverwrite = naturalAbility;
+        gBattleMons[gBattlerTarget].ability = gBattleMons[gBattlerTarget].volatiles.overwrittenAbility = newAbility;
         gBattlescriptCurrInstr = cmd->nextInstr;
     }
 }
@@ -11990,17 +12009,26 @@ void BS_TryEndNeutralizingGas(void)
                 // Other Abilities resume before this battler gains its replacement
                 // so we have to keep the old Ability during their effects and restore the
                 // new one when this command resumes, before its switch-in effects run.
-                gBattleMons[battler].ability = ABILITY_NEUTRALIZING_GAS;
+                if (gBattleStruct->battlerState[battler].learnedNeutralizingGasRemoved)
+                    gBattleMons[battler].learnedAbility = ABILITY_NEUTRALIZING_GAS;
+                else
+                    gBattleMons[battler].ability = ABILITY_NEUTRALIZING_GAS;
                 BattleScriptPush(gBattlescriptCurrInstr);
                 gBattlescriptCurrInstr = BattleScript_NeutralizingGasExits;
                 return;
             }
+        }
+        else if (gBattleStruct->battlerState[battler].learnedNeutralizingGasRemoved)
+        {
+            if (!gBattleMons[battler].volatiles.gastroAcid)
+                gBattleMons[battler].learnedAbility = gBattleStruct->learnedAbilityReplacement[battler];
         }
         else if (!gBattleMons[battler].volatiles.gastroAcid)
         {
             gBattleMons[battler].ability = gBattleMons[battler].volatiles.overwrittenAbility;
         }
 
+        gBattleStruct->battlerState[battler].learnedNeutralizingGasRemoved = FALSE;
         gSpecialStatuses[battler].neutralizingGasRemoved = FALSE;
     }
 

@@ -237,8 +237,11 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 
 **Stages:**
 - 3.1 ✅ Tests for rules that already hold (`rule_mold_breaker.c`, `rule_neutralizing_gas.c`, `rule_transform.c`, `rule_natural_only_moves.c`; 17 tests): the Mold Breaker family ignores both slots (Mold Breaker/Teravolt/Turboblaze, Mycelium Might on status moves, Propeller Tail/Stalwart vs. redirection); Neutralizing Gas suppresses all foe slots and its holder's other slot, ends when a double holder leaves, and persists while another holder remains; Transform and Imposter (natural or learned) copy both slots, empty included, and the original slots return on switch-out; Skill Swap, Role Play, Entrainment and Doodle touch natural slots only. Signature immunity and Illusion are tested with the stages that change those effects. Test files live at `test/battle/dual_ability/rule_*.c` because the Makefile only collects tests up to three directories deep.
-- 3.2 Gastro Acid / Core Enforcer, with the signature fallback.
-- 3.3 Simple Beam / Worry Seed.
+- 3.2 ✅ Gastro Acid / Core Enforcer (`rule_gastro_acid.c`, 5 tests). Both go through `setgastroacid`, which now fails only if neither slot can be suppressed. With a signature natural ability, the learned slot is suppressed and the signature ability keeps working. Baton Pass likewise keeps a passed Gastro Acid while either slot can be suppressed.
+- 3.3 ✅ Simple Beam / Worry Seed (`rule_simple_beam.c`, 7 tests). They overwrite the natural slot; if it already holds the new ability or is a signature ability, they overwrite the learned slot instead. They fail on an empty learned slot (my call, so single-ability Pokémon behave as upstream: e.g. Simple Beam still fails on a Simple or Disguise mon with no learned ability). Supporting changes:
+  - `RemoveAbilityFlags` keeps flags the learned slot still needs. The new `RemoveLearnedAbilityFlags` does the same for the learned slot, and `RemoveRuinAbilityFlags` covers both slots.
+  - The new `SetBattlerLearnedAbility` writes the in-battle learned slot.
+  - When a learned Neutralizing Gas is overwritten, the gas-exit sequence restores the learned slot rather than the natural one (`battlerState.learnedNeutralizingGasRemoved`, `learnedAbilityReplacement`).
 - 3.4 Mummy / Lingering Aroma.
 - 3.5 Wandering Spirit.
 - 3.6 Power of Alchemy / Receiver.

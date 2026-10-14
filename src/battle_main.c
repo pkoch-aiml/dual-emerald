@@ -2996,7 +2996,10 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
         if (gBattleMons[battler].volatiles.powerTrick)
             SWAP(gBattleMons[battler].attack, gBattleMons[battler].defense, i);
 
-        if (gBattleMons[battler].volatiles.gastroAcid && gAbilitiesInfo[gBattleMons[battler].ability].cantBeSuppressed)
+        // Dual Emerald: kept while either slot can still be suppressed.
+        if (gBattleMons[battler].volatiles.gastroAcid
+         && gAbilitiesInfo[gBattleMons[battler].ability].cantBeSuppressed
+         && (gBattleMons[battler].learnedAbility == ABILITY_NONE || gAbilitiesInfo[gBattleMons[battler].learnedAbility].cantBeSuppressed))
             gBattleMons[battler].volatiles.gastroAcid = FALSE;
     }
 

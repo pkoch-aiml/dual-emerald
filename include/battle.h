@@ -541,7 +541,8 @@ struct BattlerState
     u16 notOnField:1;
     u16 originalBattlerPartyId:4;
     u16 isFirstTurn:2; // Starts at 2 on switch in and counts down during end turn
-    u16 padding:8;
+    u16 learnedNeutralizingGasRemoved:1; // Dual Emerald: the Neutralizing Gas being removed was in the learned slot.
+    u16 padding:7;
     // End of Word
 };
 
@@ -606,7 +607,8 @@ struct BattleStruct
     struct EventStates eventState;
     struct PendingScriptAbilitySlot pendingScriptAbilitySlots[MAX_PENDING_SCRIPT_ABILITY_SLOTS];
     u8 pendingScriptAbilitySlotCount;
-    bool8 reactivatingSwitchInAbilities; // Dual Emerald: switchinabilities after Neutralizing Gas leaves skips slots that can't be reactivated.
+    bool8 reactivatingSwitchInAbilities;
+    u16 learnedAbilityReplacement[MAX_BATTLERS_COUNT]; // Dual Emerald: what replaced a learned Neutralizing Gas, restored after it wears off. // Dual Emerald: switchinabilities after Neutralizing Gas leaves skips slots that can't be reactivated.
     u8 dualAbsorbBattler;   // Dual Emerald: target whose two slots both absorb the current move
     u8 dualAbsorbMoveType;
     struct FutureSight futureSight[MAX_BATTLERS_COUNT];
