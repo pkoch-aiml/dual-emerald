@@ -5038,6 +5038,86 @@ bool32 IsLearnedAbilityActive(enum BattlerId battler, enum Ability ability)
     return GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED) == ability;
 }
 
+// Dual Emerald slot dispatch. Ability events fire one slot per call, natural slot first, because a
+// fired ability queues a battle script and the caller must yield to run it. *slotCursor is the next
+// slot to try. After a slot fires, *slotCursor is 0 unless another slot still holds an ability, in
+// which case the caller should stay on its current step and call again once the script has run.
+// Callers advance their own state only when *slotCursor == 0. With an empty learned slot, this
+// behaves exactly like a single call for the natural ability.
+
+// Picks the next slot to try. The natural slot is always tried (callers pass its ability, which
+// may be ABILITY_NONE as in vanilla); later slots are skipped while empty or suppressed.
+static bool32 NextAbilitySlot(enum BattlerId battler, enum Ability naturalAbility, u8 *slotCursor, enum Ability *ability)
+{
+    while (*slotCursor < NUM_BATTLER_ABILITY_SLOTS)
+    {
+        enum BattlerAbilitySlot slot = (*slotCursor)++;
+        if (slot == BATTLER_ABILITY_NATURAL)
+        {
+            *ability = naturalAbility;
+            return TRUE;
+        }
+        *ability = GetBattlerAbilityInSlot(battler, slot);
+        if (*ability != ABILITY_NONE)
+            return TRUE;
+    }
+    *slotCursor = 0;
+    return FALSE;
+}
+
+static void FinishFiredAbilitySlot(enum BattlerId battler, u8 *slotCursor)
+{
+    for (u32 next = *slotCursor; next < NUM_BATTLER_ABILITY_SLOTS; next++)
+    {
+        if (GetBattlerRawAbilityInSlot(battler, next) != ABILITY_NONE)
+            return;
+    }
+    *slotCursor = 0;
+}
+
+bool32 TryAbilityEffectsBySlot(enum AbilityEffect caseID, enum BattlerId battler, enum Ability naturalAbility, enum Move move, bool32 shouldAbilityTrigger, u8 *slotCursor)
+{
+    enum Ability ability;
+    while (NextAbilitySlot(battler, naturalAbility, slotCursor, &ability))
+    {
+        if (AbilityBattleEffects(caseID, battler, ability, move, shouldAbilityTrigger))
+        {
+            FinishFiredAbilitySlot(battler, slotCursor);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+// Same as TryAbilityEffectsBySlot, for steps that try several things per ability.
+bool32 TryEachAbilitySlot(enum BattlerId battler, enum Ability naturalAbility, AbilitySlotFunc func, u8 *slotCursor)
+{
+    enum Ability ability;
+    while (NextAbilitySlot(battler, naturalAbility, slotCursor, &ability))
+    {
+        if (func(battler, ability))
+        {
+            FinishFiredAbilitySlot(battler, slotCursor);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+// For ability events that the caller polls repeatedly until nothing fires (e.g. status immunity
+// cures): tries the natural slot, then the learned slot, and returns TRUE as soon as one fires.
+bool32 TryAbilityEffectsAnySlot(enum AbilityEffect caseID, enum BattlerId battler, enum Ability naturalAbility, enum Move move, bool32 shouldAbilityTrigger)
+{
+    enum Ability learnedAbility;
+
+    if (AbilityBattleEffects(caseID, battler, naturalAbility, move, shouldAbilityTrigger))
+        return TRUE;
+    learnedAbility = GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED);
+    if (learnedAbility != ABILITY_NONE && AbilityBattleEffects(caseID, battler, learnedAbility, move, shouldAbilityTrigger))
+        return TRUE;
+    return FALSE;
+}
+
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability)
 {
     return BattlerHasAbilityInternal(battler, ability, FALSE, FALSE);

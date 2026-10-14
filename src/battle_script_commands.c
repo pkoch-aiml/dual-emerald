@@ -3686,6 +3686,7 @@ static void Cmd_switchineffects(void)
     }
 
     gBattleStruct->eventState.switchIn = 0;
+    gBattleStruct->eventState.switchInAbilitySlot = 0;
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 

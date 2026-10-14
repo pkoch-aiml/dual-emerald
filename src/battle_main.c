@@ -3504,6 +3504,7 @@ static void TryDoEventsBeforeFirstTurn(void)
         break;
     case FIRST_TURN_SWITCH_IN_EVENTS:
         gBattleStruct->eventState.switchIn = 0;
+        gBattleStruct->eventState.switchInAbilitySlot = 0;
         for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
             gBattleStruct->battlerState[battler].switchIn = TRUE;
         BattleScriptPushCursorAndCallback(BattleScript_FirstTurnSwitchInEvents);
