@@ -5385,7 +5385,7 @@ bool32 IsSafeguardProtected(enum BattlerId battlerAtk, enum BattlerId battlerDef
         return FALSE;
     if (IsBattlerAlly(battlerAtk, battlerDef))
         return TRUE;
-    if (abilityAtk == ABILITY_INFILTRATOR)
+    if (AbilityOrLearned(battlerAtk, abilityAtk, ABILITY_INFILTRATOR))
         return FALSE;
     return TRUE;
 }
@@ -5405,7 +5405,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         {
             battleScript = BattleScript_AlreadyPoisoned;
         }
-        else if (abilityAtk != ABILITY_CORROSION && IS_BATTLER_ANY_TYPE(battlerDef, TYPE_POISON, TYPE_STEEL))
+        else if (!AbilityOrLearned(battlerAtk, abilityAtk, ABILITY_CORROSION) && IS_BATTLER_ANY_TYPE(battlerDef, TYPE_POISON, TYPE_STEEL))
         {
             battleScript = BattleScript_NotAffected;
         }
@@ -5416,7 +5416,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
             abilityDef = ABILITY_PASTEL_VEIL;
             battleScript = BattleScript_ImmunityProtected;
         }
-        else if (abilityDef == ABILITY_IMMUNITY)
+        else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_IMMUNITY))
         {
             abilityAffected = TRUE;
             battleScript = BattleScript_ImmunityProtected;
@@ -5435,7 +5435,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         {
             battleScript = BattleScript_ButItFailed;
         }
-        else if (abilityDef == ABILITY_LIMBER)
+        else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_LIMBER))
         {
             abilityAffected = TRUE;
             battleScript = BattleScript_ImmunityProtected;
@@ -5450,12 +5450,12 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         {
             battleScript = BattleScript_NotAffected;
         }
-        else if (abilityDef == ABILITY_WATER_VEIL || abilityDef == ABILITY_WATER_BUBBLE)
+        else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_WATER_VEIL) || AbilityOrLearned(battlerDef, abilityDef, ABILITY_WATER_BUBBLE))
         {
             abilityAffected = TRUE;
             battleScript = BattleScript_ImmunityProtected;
         }
-        else if (abilityDef == ABILITY_THERMAL_EXCHANGE)
+        else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_THERMAL_EXCHANGE))
         {
             abilityAffected = TRUE;
             battleScript = BattleScript_AbilityProtectsDoesntAffect;
@@ -5485,7 +5485,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
             abilityDef = ABILITY_SWEET_VEIL;
             battleScript = BattleScript_ImmunityProtected;
         }
-        else if (abilityDef == ABILITY_VITAL_SPIRIT || abilityDef == ABILITY_INSOMNIA)
+        else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_VITAL_SPIRIT) || AbilityOrLearned(battlerDef, abilityDef, ABILITY_INSOMNIA))
         {
             abilityAffected = TRUE;
             battleScript = BattleScript_PrintAbilityMadeIneffective;
@@ -5501,7 +5501,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         {
             battleScript = BattleScript_NotAffected;
         }
-        else if (abilityDef == ABILITY_MAGMA_ARMOR)
+        else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_MAGMA_ARMOR))
         {
             abilityAffected = TRUE;
             battleScript = BattleScript_NotAffected;
@@ -5515,8 +5515,8 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         return FALSE;
 
     // Checks that apply to all non volatile statuses
-    if (abilityDef == ABILITY_COMATOSE
-     || abilityDef == ABILITY_PURIFYING_SALT)
+    if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_COMATOSE)
+     || AbilityOrLearned(battlerDef, abilityDef, ABILITY_PURIFYING_SALT))
     {
         abilityAffected = TRUE;
         battleScript = BattleScript_AbilityProtectsDoesntAffect;
@@ -5844,7 +5844,7 @@ enum HoldEffect GetBattlerHoldEffectInternal(enum BattlerId battler, enum Abilit
 
     if (gBattleMons[battler].volatiles.embargoTimer
      || gFieldStatuses & STATUS_FIELD_MAGIC_ROOM
-     || (ability == ABILITY_KLUTZ && !gBattleMons[battler].volatiles.gastroAcid))
+     || (AbilityOrLearned(battler, ability, ABILITY_KLUTZ) && !gBattleMons[battler].volatiles.gastroAcid))
     {
         if (gBattleMons[battler].item == ITEM_ENIGMA_BERRY_E_READER)
             holdEffect = gEnigmaBerries[battler].holdEffect;
@@ -5911,7 +5911,7 @@ bool32 IsMoveMakingContact(enum BattlerId battlerAtk, enum BattlerId battlerDef,
         RecordItemEffectBattle(battlerAtk, HOLD_EFFECT_PUNCHING_GLOVE);
         return FALSE;
     }
-    else if (abilityAtk == ABILITY_LONG_REACH)
+    else if (AbilityOrLearned(battlerAtk, abilityAtk, ABILITY_LONG_REACH))
     {
         RecordAbilityBattle(battlerAtk, ABILITY_LONG_REACH);
         return FALSE;
@@ -6051,7 +6051,7 @@ static bool32 IsBattlerUngroundedByAbilityItemOrEffect(enum BattlerId battler, e
         return TRUE;
     if (holdEffect == HOLD_EFFECT_AIR_BALLOON)
         return TRUE;
-    if (ability == ABILITY_LEVITATE || ability == ABILITY_EELEVATE)
+    if (AbilityOrLearned(battler, ability, ABILITY_LEVITATE) || AbilityOrLearned(battler, ability, ABILITY_EELEVATE))
         return TRUE;
     return FALSE;
 }
@@ -6109,9 +6109,9 @@ u32 GetBattlerWeight(enum BattlerId battler, enum Ability ability, enum HoldEffe
         }
     }
 
-    if (ability == ABILITY_HEAVY_METAL)
+    if (AbilityOrLearned(battler, ability, ABILITY_HEAVY_METAL))
         weight *= 2;
-    else if (ability == ABILITY_LIGHT_METAL)
+    else if (AbilityOrLearned(battler, ability, ABILITY_LIGHT_METAL))
         weight /= 2;
 
     if (holdEffect == HOLD_EFFECT_FLOAT_STONE)
@@ -6356,7 +6356,7 @@ static inline u32 CalcMoveBasePower(struct DamageContext *ctx)
             basePower *= 2;
         break;
     case EFFECT_WEATHER_BALL:
-        if (GetAttackerWeather(ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather) & (B_WEATHER_ANY & ~B_WEATHER_STRONG_WINDS))
+        if (GetAttackerWeather(ctx->battlerAtk, ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather) & (B_WEATHER_ANY & ~B_WEATHER_STRONG_WINDS))
             basePower *= 2;
         break;
     case EFFECT_PURSUIT:
@@ -6604,7 +6604,7 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
     }
     case EFFECT_SOLAR_BEAM:
     {
-        u32 weather = GetAttackerWeather(ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather);
+        u32 weather = GetAttackerWeather(ctx->battlerAtk, ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather);
         if ((GetConfig(B_SANDSTORM_SOLAR_BEAM) >= GEN_3 && weather & B_WEATHER_LOW_LIGHT)
             || weather & (B_WEATHER_RAIN | B_WEATHER_ICY_ANY | B_WEATHER_FOG)) // Excludes Sandstorm
             modifier = uq4_12_multiply(modifier, UQ_4_12(0.5));
@@ -7388,7 +7388,7 @@ static inline u32 CalcDefenseStat(struct DamageContext *ctx)
         break;
     }
 
-    u32 attackerWeather = GetAttackerWeather(ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather);
+    u32 attackerWeather = GetAttackerWeather(ctx->battlerAtk, ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather);
     // sandstorm sp.def boost for rock types
     if (GetConfig(B_SANDSTORM_SPDEF_BOOST) >= GEN_4
 	 && attackerWeather & B_WEATHER_SANDSTORM
@@ -7449,7 +7449,7 @@ static inline uq4_12_t GetSameTypeAttackBonusModifier(struct DamageContext *ctx)
 // Utility Umbrella holders take normal damage from what would be rain- and sun-weakened attacks.
 static uq4_12_t GetWeatherDamageModifier(struct DamageContext *ctx)
 {
-    u32 attackerWeather = GetAttackerWeather(ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather);
+    u32 attackerWeather = GetAttackerWeather(ctx->battlerAtk, ctx->holdEffects[ctx->battlerAtk], ctx->abilities[ctx->battlerAtk], ctx->weather);
     if ((attackerWeather | ctx->weather) == B_WEATHER_NONE)
         return UQ_4_12(1.0);// This early exit helps limit AI thinking time
     if (GetMoveEffect(ctx->move) == EFFECT_HYDRO_STEAM && (attackerWeather & B_WEATHER_SUN))
@@ -8971,7 +8971,7 @@ bool32 TryClearIllusion(enum BattlerId battler, enum Ability ability)
 {
     if (gBattleStruct->illusion[battler].state != ILLUSION_ON)
         return FALSE;
-    if (ability == ABILITY_ILLUSION && !IsBattlerTurnDamaged(battler, EXCLUDING_SUBSTITUTES))
+    if (AbilityOrLearned(battler, ability, ABILITY_ILLUSION) && !IsBattlerTurnDamaged(battler, EXCLUDING_SUBSTITUTES))
         return FALSE;
 
     gBattleScripting.battler = battler;
@@ -9318,7 +9318,7 @@ bool32 CanFling(enum BattlerId battlerAtk, enum Ability abilityAtk)
     enum Item item = gBattleMons[battlerAtk].item;
 
     if (item == ITEM_NONE
-      || (GetConfig(B_KLUTZ_FLING_INTERACTION) >= GEN_5 && abilityAtk == ABILITY_KLUTZ)
+      || (GetConfig(B_KLUTZ_FLING_INTERACTION) >= GEN_5 && AbilityOrLearned(battlerAtk, abilityAtk, ABILITY_KLUTZ))
       || gFieldStatuses & STATUS_FIELD_MAGIC_ROOM
       || gBattleMons[battlerAtk].volatiles.embargoTimer
       || (GetItemTMHMIndex(item) != 0 && GetItemImportance(item) == 1) // don't fling reusable TMs
@@ -9529,9 +9529,9 @@ bool32 IsBattlerAffectedByHazards(enum BattlerId battler, enum HoldEffect holdEf
     return ret;
 }
 
-bool32 IsSheerForceAffected(enum Move move, enum Ability ability)
+bool32 IsSheerForceAffected(enum BattlerId battler, enum Move move, enum Ability ability)
 {
-    return ability == ABILITY_SHEER_FORCE && MoveIsAffectedBySheerForce(move);
+    return AbilityOrLearned(battler, ability, ABILITY_SHEER_FORCE) && MoveIsAffectedBySheerForce(move);
 }
 
 bool32 BlocksPrankster(enum Move move, enum BattlerId battlerPrankster, enum BattlerId battlerDef, bool32 checkTarget)
@@ -9581,9 +9581,9 @@ u32 GetWeather(void)
     return gBattleWeather;
 }
 
-u32 GetAttackerWeather(enum HoldEffect holdEffect, enum Ability ability, u32 weather)
+u32 GetAttackerWeather(enum BattlerId battler, enum HoldEffect holdEffect, enum Ability ability, u32 weather)
 {
-    if (ability == ABILITY_MEGA_SOL)
+    if (AbilityOrLearned(battler, ability, ABILITY_MEGA_SOL))
         return B_WEATHER_SUN;
 
     if (holdEffect == HOLD_EFFECT_UTILITY_UMBRELLA)
@@ -9749,7 +9749,7 @@ bool32 AreBattlersOfSameGender(enum BattlerId battler1, enum BattlerId battler2)
 
 u32 CalcSecondaryEffectChance(enum BattlerId battler, enum Ability battlerAbility, const struct AdditionalEffect *additionalEffect)
 {
-    bool8 hasSereneGrace = (battlerAbility == ABILITY_SERENE_GRACE);
+    bool8 hasSereneGrace = (AbilityOrLearned(battler, battlerAbility, ABILITY_SERENE_GRACE));
     bool8 hasRainbow = (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_RAINBOW) != 0;
     u16 secondaryEffectChance = additionalEffect->chance;
 
@@ -10136,9 +10136,9 @@ bool32 DoesDestinyBondFail(enum BattlerId battler)
 // This check has always to be the last in a condtion statement because of the recording of AI data.
 bool32 IsMoveEffectBlockedByTarget(enum Ability ability)
 {
-    if (ability == ABILITY_SHIELD_DUST)
+    if (AbilityOrLearned(gBattlerTarget, ability, ABILITY_SHIELD_DUST))
     {
-        RecordAbilityBattle(gBattlerTarget, ability);
+        RecordAbilityBattle(gBattlerTarget, ABILITY_SHIELD_DUST);
         return TRUE;
     }
     else if (GetBattlerHoldEffect(gBattlerTarget) == HOLD_EFFECT_COVERT_CLOAK)
@@ -10272,7 +10272,7 @@ bool32 TrySwitchInEjectPack(enum EjectPackTiming timing)
 
 bool32 EmergencyExitCanBeTriggered(enum BattlerId battler, enum Ability ability)
 {
-    if (ability != ABILITY_EMERGENCY_EXIT && ability != ABILITY_WIMP_OUT)
+    if (!AbilityOrLearned(battler, ability, ABILITY_EMERGENCY_EXIT) && !AbilityOrLearned(battler, ability, ABILITY_WIMP_OUT))
         return FALSE;
 
     if (IsBattlerAlive(battler)
@@ -10531,7 +10531,7 @@ bool32 CanMoveSkipAccuracyCalc(struct BattleCalcValues *cv, u32 weather, enum Re
     }
     else
     {
-        u32 attackerWeather = GetAttackerWeather(cv->holdEffects[battlerAtk], cv->abilities[battlerAtk], weather);
+        u32 attackerWeather = GetAttackerWeather(battlerAtk, cv->holdEffects[battlerAtk], cv->abilities[battlerAtk], weather);
 
         if ((attackerWeather & B_WEATHER_RAIN) && MoveAlwaysHitsInRain(cv->move))
             effect = TRUE;
@@ -10584,7 +10584,7 @@ u32 GetTotalAccuracy(struct BattleCalcValues *cv, u32 weather)
         buff = MAX_STAT_STAGE;
 
     u32 moveAcc = GetMoveAccuracy(cv->move);
-    u32 attackerWeather = GetAttackerWeather(cv->holdEffects[battlerAtk], cv->abilities[battlerAtk], weather);
+    u32 attackerWeather = GetAttackerWeather(battlerAtk, cv->holdEffects[battlerAtk], cv->abilities[battlerAtk], weather);
 
     // Check Thunder and Hurricane on sunny weather.
     if ((attackerWeather & B_WEATHER_SUN) && MoveHas50AccuracyInSun(cv->move))
@@ -10773,7 +10773,7 @@ static bool32 CanBreakThroughSemiInvulnerablityInternal(enum BattlerId battlerAt
     {
         if (CanMoveSkipAccuracyCheck(battlerAtk, move))
             return TRUE;
-        if (abilityAtk == ABILITY_NO_GUARD || abilityDef == ABILITY_NO_GUARD)
+        if (AbilityOrLearned(battlerAtk, abilityAtk, ABILITY_NO_GUARD) || AbilityOrLearned(battlerDef, abilityDef, ABILITY_NO_GUARD))
             return TRUE;
         if (gBattleMons[battlerAtk].volatiles.battlerWithSureHit == battlerDef + 1)
             return TRUE;
@@ -10850,7 +10850,7 @@ static bool32 IsOpposingSideEmpty(enum BattlerId battler)
 
 bool32 IsAffectedByPowderMove(enum BattlerId battler, enum Ability ability, enum HoldEffect holdEffect)
 {
-    if (GetConfig(B_POWDER_OVERCOAT) >= GEN_6 && ability == ABILITY_OVERCOAT)
+    if (GetConfig(B_POWDER_OVERCOAT) >= GEN_6 && AbilityOrLearned(battler, ability, ABILITY_OVERCOAT))
         return FALSE;
     if (GetConfig(B_POWDER_GRASS) >= GEN_6 && IS_BATTLER_OF_TYPE(battler, TYPE_GRASS))
         return FALSE;
@@ -11354,5 +11354,5 @@ bool32 IsBattlerInvolvedInSkyDrop(enum BattlerId battler)
 
 bool32 IsAsleepOrComatose(enum BattlerId battler, enum Ability ability)
 {
-    return (gBattleMons[battler].status1 & STATUS1_SLEEP) || ability == ABILITY_COMATOSE;
+    return (gBattleMons[battler].status1 & STATUS1_SLEEP) || AbilityOrLearned(battler, ability, ABILITY_COMATOSE);
 }

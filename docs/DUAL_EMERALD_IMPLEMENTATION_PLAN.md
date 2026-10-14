@@ -74,7 +74,7 @@ With the 8-entry cap, a whole evolution line, including branches like Eevee's, s
 
 **Mega Evolution and Primal Reversion: fixed learned ability.** The design says Mega Evolution overwrites both slots, and Primal Reversion works the same way. The natural slot already comes from the form's `.abilities[]`. For the learned slot, add `enum Ability fixedLearnedAbility:9` to `struct SpeciesInfo`, set only on Mega and Primal forms (`isMegaEvolution || isPrimalReversion`). Any ability is allowed here, including ones outside the base list and ones with `cantBeSwapped`. This is read-only ROM data, about 2 bytes for each of the 1,473 species (~3 KB). It doesn't touch save data or PC storage. Mega and Primal forms share their base form's `learnableAbilities` pointer so the "every species has a list" rule still holds. Milestone 1 only adds the data; the overwrite happens in Milestone 2.
 
-**Placeholder content.** Write a one-time script (in `tools/` or `dev_scripts/`) that generates the lists and adds the `.learnableAbilities` and `.fixedLearnedAbility` lines. Content doesn't matter for this milestone, but the structure does, so the script:
+**Placeholder content.** (Update, 2.4: the placeholder `fixedLearnedAbility` is **Honey Gather** for every Mega/Primal form. It has no battle effect, so placeholder data doesn't change battles or break upstream tests that use Mega forms. Real values come with content work.) Write a one-time script (in `tools/` or `dev_scripts/`) that generates the lists and adds the `.learnableAbilities` and `.fixedLearnedAbility` lines. Content doesn't matter for this milestone, but the structure does, so the script:
 - walks each evolution tree from its root. The root's list is its own deduplicated `.abilities[]` minus any ability with `cantBeSwapped`, with a fallback such as `ABILITY_RUN_AWAY` if that leaves nothing. Each evolution copies its parent's list and then adds its own new abilities, stopping at 8 entries;
 - gives form-change groups and Mega/Primal forms the shared pointers described above;
 - gives each Mega and Primal form any placeholder `fixedLearnedAbility`, e.g. its base form's first natural ability.
@@ -164,8 +164,17 @@ The work is split into stages. Each stage builds, passes the full `make check`, 
 
 The AI therefore sees real learned slots until Milestone 5. Pokémon not on the field (switch-in evaluation, party displays) use the party mon's stored learned ability, or the fixed one for Mega/Primal forms. This keeps the diff, and future upstream merges, small.
 
-### 2.4 Direct comparisons
-- Convert `GetBattlerAbility(b) == ABILITY_X` and `ability = GetBattlerAbility(b); ... ability == ABILITY_X` to `BattlerHasAbility`, file by file: hold effects, end of turn, move resolution, script commands, util.
+### 2.4 Direct comparisons ✅
+- `GetBattlerAbility(b) == ABILITY_X` → `BattlerHasAbility` (38 sites).
+- Cached-array comparisons (`ctx->abilities[b] == ABILITY_X`, etc.) → `AbilityOrLearned` (79 sites).
+- Ability variables and parameters paired with their battler → `AbilityOrLearned` (94 sites in 46 functions). Excluded: `AbilityBattleEffects` and the weather-setting helpers, which receive *the ability that fired* and belong to 2.5; and `IsMoldBreakerTypeAbility`, which is already called once per slot.
+- `IsAbilityAndRecord` checks the learned slot, which covers Magic Guard and similar checks everywhere.
+- Added a battler parameter to `IsSheerForceAffected`, `GetAttackerWeather` and `CanMoveThawTarget`. Shield Dust uses `gBattlerTarget`.
+- Heal Bell/Aromatherapy: a benched mon's stored learned Soundproof counts.
+- **Performance:** `AbilityOrLearned` is inline, and the common case is one comparison against the raw learned slot. The AI thinking-time tests failed on the first attempt and pass now.
+- **Safety:** learned slots are never read outside battle (`gBattleStruct == NULL`), nor while evaluating a party or overworld mon through a placeholder battler (`gIgnoreLearnedAbilities`, set by `CalcPartyMonTypeEffectivenessMultiplier` and `GetDynamicMoveType` for mons not in battle).
+- `else if` chains (e.g. `GetBattlerTotalSpeedStat`) currently apply the first matching slot. 2.6 restructures them so effects stack.
+- Tests in `test/battle/dual_ability/direct_checks.c` (10).
 
 ### 2.5 Trigger dispatch
 - `AbilityBattleEffects` callers loop over both slots, **natural first**.
@@ -222,6 +231,7 @@ A first integration of the dual-ability system into the battle AI. The goal is t
 - Add learned-ability fields to `AI_SavedBattleMon`, `AiPartyMon` and the ability history in `battle_ai_record.c`.
 - Update ability prediction and "known ability" tracking to cover two slots.
 - Switch the score modifiers that check abilities to the slot-aware helpers.
+- Known gap from Option A: when the AI predicts damage or immunities, it reads the target's **live** learned slot. It doesn't apply its own Mold Breaker sanitizing (`AI_GetMoldBreakerSanitizedAbility`) to that slot, and it knows learned abilities it hasn't seen yet.
 - `test/battle/ai/` still passes, plus a few dual-ability sanity tests, e.g. the AI doesn't use Ground moves into a learned Levitate.
 
 ## Milestone 6: Story and content (after the plot rewrite)

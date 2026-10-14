@@ -217,7 +217,7 @@ bool32 IsPartnerMonFromSameTrainer(enum BattlerId battler);
 enum DamageCategory GetCategoryBasedOnStats(enum BattlerId battler);
 void SetShellSideArmCategory(void);
 bool32 MoveIsAffectedBySheerForce(enum Move move);
-bool32 IsSheerForceAffected(enum Move move, enum Ability ability);
+bool32 IsSheerForceAffected(enum BattlerId battler, enum Move move, enum Ability ability);
 void SetItemsToRestoreAfterBattle(enum BattleTrainer trainer, u32 partySlot);
 void TryRestoreHeldItems(void);
 void RestoreCaughtWildMonHeldItem(struct Pokemon *mon, enum BattlerId battler);
@@ -231,7 +231,7 @@ bool32 BlocksPrankster(enum Move move, enum BattlerId battlerPrankster, enum Bat
 bool32 PickupHasValidTarget(enum BattlerId battler);
 bool32 CantPickupItem(u32 battler);
 u32 GetWeather(void);
-u32 GetAttackerWeather(enum HoldEffect holdEffect, enum Ability ability, u32 weather);
+u32 GetAttackerWeather(enum BattlerId battler, enum HoldEffect holdEffect, enum Ability ability, u32 weather);
 bool32 IsBattlerWeatherAffected(enum HoldEffect holdEffect, u32 weather, u32 weatherFlags);
 enum MoveTarget GetBattlerMoveSelectionTargetType(enum BattlerId battler, enum Move move);
 enum MoveTarget GetBattlerMoveTargetType(enum BattlerId battler, enum Move move);

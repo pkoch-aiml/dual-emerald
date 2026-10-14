@@ -295,7 +295,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sSceptileFormSpeciesIdTable,
         .formChangeTable = sSceptileFormChangeTable,
         .learnableAbilities = sSceptileLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_OVERGROW,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_TREECKO
@@ -632,7 +632,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sBlazikenFormSpeciesIdTable,
         .formChangeTable = sBlazikenFormChangeTable,
         .learnableAbilities = sBlazikenLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_BLAZE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_TORCHIC
@@ -935,7 +935,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sSwampertFormSpeciesIdTable,
         .formChangeTable = sSwampertFormChangeTable,
         .learnableAbilities = sSwampertLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_TORRENT,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_MUDKIP
@@ -3009,7 +3009,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sGardevoirFormSpeciesIdTable,
         .formChangeTable = sGardevoirFormChangeTable,
         .learnableAbilities = sGardevoirLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SYNCHRONIZE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 
@@ -3165,7 +3165,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sGalladeFormSpeciesIdTable,
         .formChangeTable = sGalladeFormChangeTable,
         .learnableAbilities = sGalladeLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SYNCHRONIZE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_GEN_4_CROSS_EVOS
@@ -4791,7 +4791,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sSableyeFormSpeciesIdTable,
         .formChangeTable = sSableyeFormChangeTable,
         .learnableAbilities = sSableyeLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_KEEN_EYE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_SABLEYE
@@ -4953,7 +4953,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sMawileFormSpeciesIdTable,
         .formChangeTable = sMawileFormChangeTable,
         .learnableAbilities = sMawileLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_HYPER_CUTTER,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_MAWILE
@@ -5254,7 +5254,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sAggronFormSpeciesIdTable,
         .formChangeTable = sAggronFormChangeTable,
         .learnableAbilities = sAggronLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_STURDY,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_ARON
@@ -5502,7 +5502,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sMedichamFormSpeciesIdTable,
         .formChangeTable = sMedichamFormChangeTable,
         .learnableAbilities = sMedichamLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_PURE_POWER,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_MEDITITE
@@ -5723,7 +5723,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sManectricFormSpeciesIdTable,
         .formChangeTable = sManectricFormChangeTable,
         .learnableAbilities = sManectricLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_STATIC,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_ELECTRIKE
@@ -6705,7 +6705,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sSharpedoFormSpeciesIdTable,
         .formChangeTable = sSharpedoFormChangeTable,
         .learnableAbilities = sSharpedoLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_ROUGH_SKIN,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_CARVANHA
@@ -7110,7 +7110,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sCameruptFormSpeciesIdTable,
         .formChangeTable = sCameruptFormChangeTable,
         .learnableAbilities = sCameruptLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_OBLIVIOUS,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_NUMEL
@@ -8047,7 +8047,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sAltariaFormSpeciesIdTable,
         .formChangeTable = sAltariaFormChangeTable,
         .learnableAbilities = sAltariaLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_NATURAL_CURE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_SWABLU
@@ -9965,7 +9965,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sBanetteFormSpeciesIdTable,
         .formChangeTable = sBanetteFormChangeTable,
         .learnableAbilities = sBanetteLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_INSOMNIA,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_SHUPPET
@@ -10531,7 +10531,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sChimechoFormSpeciesIdTable,
         .formChangeTable = sChimechoFormChangeTable,
         .learnableAbilities = sChimechoLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_LEVITATE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_CHIMECHO
@@ -10690,7 +10690,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sAbsolFormSpeciesIdTable,
         .formChangeTable = sAbsolFormChangeTable,
         .learnableAbilities = sAbsolLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_PRESSURE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 
@@ -10753,7 +10753,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sAbsolFormSpeciesIdTable,
         .formChangeTable = sAbsolFormChangeTable,
         .learnableAbilities = sAbsolLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_PRESSURE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_ABSOL
@@ -10990,7 +10990,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sGlalieFormSpeciesIdTable,
         .formChangeTable = sGlalieFormChangeTable,
         .learnableAbilities = sGlalieLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_INNER_FOCUS,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 
@@ -11124,7 +11124,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sFroslassFormSpeciesIdTable,
         .formChangeTable = sFroslassFormChangeTable,
         .learnableAbilities = sFroslassLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_INNER_FOCUS,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_GEN_4_CROSS_EVOS
@@ -12050,7 +12050,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sSalamenceFormSpeciesIdTable,
         .formChangeTable = sSalamenceFormChangeTable,
         .learnableAbilities = sSalamenceLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_ROCK_HEAD,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_BAGON
@@ -12355,7 +12355,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sMetagrossFormSpeciesIdTable,
         .formChangeTable = sMetagrossFormChangeTable,
         .learnableAbilities = sMetagrossLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_CLEAR_BODY,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_BELDUM
@@ -12759,7 +12759,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sLatiasFormSpeciesIdTable,
         .formChangeTable = sLatiasFormChangeTable,
         .learnableAbilities = sLatiasLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_LEVITATE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_LATIAS
@@ -12921,7 +12921,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sLatiosFormSpeciesIdTable,
         .formChangeTable = sLatiosFormChangeTable,
         .learnableAbilities = sLatiosLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_LEVITATE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_LATIOS
@@ -13079,7 +13079,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sKyogreFormSpeciesIdTable,
         .formChangeTable = sKyogreFormChangeTable,
         .learnableAbilities = sKyogreLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_DRIZZLE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_PRIMAL_REVERSIONS
 #endif //P_FAMILY_KYOGRE
@@ -13237,7 +13237,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sGroudonFormSpeciesIdTable,
         .formChangeTable = sGroudonFormChangeTable,
         .learnableAbilities = sGroudonLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_DROUGHT,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_PRIMAL_REVERSIONS
 #endif //P_FAMILY_GROUDON
@@ -13400,7 +13400,7 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .formSpeciesIdTable = sRayquazaFormSpeciesIdTable,
         .formChangeTable = sRayquazaFormChangeTable,
         .learnableAbilities = sRayquazaLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_AIR_LOCK,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_RAYQUAZA

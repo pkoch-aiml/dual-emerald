@@ -581,7 +581,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sEmboarFormSpeciesIdTable,
         .formChangeTable = sEmboarFormChangeTable,
         .learnableAbilities = sEmboarLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_BLAZE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_TEPIG
@@ -2934,7 +2934,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sExcadrillFormSpeciesIdTable,
         .formChangeTable = sExcadrillFormChangeTable,
         .learnableAbilities = sExcadrillLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SAND_RUSH,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_DRILBUR
@@ -3088,7 +3088,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sAudinoFormSpeciesIdTable,
         .formChangeTable = sAudinoFormChangeTable,
         .learnableAbilities = sAudinoLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_HEALER,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_AUDINO
@@ -4184,7 +4184,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sScolipedeFormSpeciesIdTable,
         .formChangeTable = sScolipedeFormChangeTable,
         .learnableAbilities = sScolipedeLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_POISON_POINT,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_VENIPEDE
@@ -5972,7 +5972,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sScraftyFormSpeciesIdTable,
         .formChangeTable = sScraftyFormChangeTable,
         .learnableAbilities = sScraftyLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SHED_SKIN,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_SCRAGGY
@@ -10028,7 +10028,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sEelektrossFormSpeciesIdTable,
         .formChangeTable = sEelektrossFormChangeTable,
         .learnableAbilities = sEelektrossLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_LEVITATE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_TYNAMO
@@ -10463,7 +10463,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sChandelureFormSpeciesIdTable,
         .formChangeTable = sChandelureFormChangeTable,
         .learnableAbilities = sChandelureLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_FLASH_FIRE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_LITWICK
@@ -11602,7 +11602,7 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
         .formSpeciesIdTable = sGolurkFormSpeciesIdTable,
         .formChangeTable = sGolurkFormChangeTable,
         .learnableAbilities = sGolurkLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_IRON_FIST,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_GOLETT

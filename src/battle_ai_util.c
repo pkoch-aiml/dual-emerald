@@ -1031,7 +1031,7 @@ static bool32 AI_IsMoveEffectInPlus(enum BattlerId battlerAtk, enum BattlerId ba
     enum Move predictedMove = GetPredictedMove(battlerAtk, battlerDef, gAiLogicData);
     bool32 aiIsFaster = AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY);
 
-    if (IsSheerForceAffected(move, abilityAtk)
+    if (IsSheerForceAffected(battlerAtk, move, abilityAtk)
      && !(move == MOVE_ORDER_UP && gBattleStruct->battlerState[battlerAtk].commanderSpecies != SPECIES_NONE))
     {
         return FALSE;
@@ -3254,7 +3254,7 @@ bool32 IsTwoTurnNotSemiInvulnerableMove(enum BattlerId battlerAtk, enum Move mov
     case EFFECT_TWO_TURNS_ATTACK:
     {
         u32 weather = AI_GetWeather();
-        u32 attackerWeather = GetAttackerWeather(gAiLogicData->holdEffects[battlerAtk], gAiLogicData->abilities[battlerAtk], weather);
+        u32 attackerWeather = GetAttackerWeather(battlerAtk, gAiLogicData->holdEffects[battlerAtk], gAiLogicData->abilities[battlerAtk], weather);
 
         enum BattleWeather moveAffectedByWeather = GetTwoTurnMoveWeather(move);
         enum BattleWeather weatherType = gBattleWeatherInfo[GetBattleWeather(weather)].type;
@@ -6280,7 +6280,7 @@ bool32 IsPartyMonPlannedToBeSwitchedInByPartner(u32 partyIndex, enum BattlerId b
 s32 AI_GetAdjustedStatStage(enum BattlerId battler, enum Move move, s32 stage)
 {
     if (GetMoveEffect(move) == EFFECT_GROWTH
-     && GetAttackerWeather(gAiLogicData->holdEffects[battler], gAiLogicData->abilities[battler], AI_GetWeather()) & B_WEATHER_SUN)
+     && GetAttackerWeather(battler, gAiLogicData->holdEffects[battler], gAiLogicData->abilities[battler], AI_GetWeather()) & B_WEATHER_SUN)
         stage = 2;
 
     if (stage == STAT_CHANGE_FORCE_MAX)

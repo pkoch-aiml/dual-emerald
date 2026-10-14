@@ -30,6 +30,7 @@ ALL_AMS_SPECIES = ["SPECIES_MEW"]
 OUTPUT_FILE = ROOT / "src/data/pokemon/learnable_abilities.h"
 MAX_ENTRIES = 8
 FALLBACK_ABILITY = "ABILITY_RUN_AWAY"
+FIXED_PLACEHOLDER_ABILITY = "ABILITY_HONEY_GATHER"
 
 ENTRY_RE = re.compile(r"^    \[(SPECIES_\w+)\]\s*=\s*(.*?)\s*$")
 DEFINE_RE = re.compile(r"^\s*#\s*define\s+(\w+)(\(([^)]*)\))?")
@@ -380,12 +381,13 @@ def main():
     for group in groups:
         build(group)
 
-    # Mega/Primal fixed learned ability: the group's first list entry.
+    # Mega/Primal fixed learned ability: a placeholder with no battle effect, so placeholder data
+    # doesn't change how existing battles (and upstream tests with Mega forms) play out.
     fixed = {}
     for sp in order:
         e = entries[sp]
         if is_flag(e, "isMegaEvolution") or is_flag(e, "isPrimalReversion"):
-            fixed[sp] = lists[uf.find(sp)][0]
+            fixed[sp] = FIXED_PLACEHOLDER_ABILITY
 
     print(f"species entries: {len(order)} ({sum(1 for e in entries.values() if e.macro)} via macros)")
     print(f"list groups: {len(groups)}; evolution edges between groups: {sum(len(p) for p in parents.values())}")

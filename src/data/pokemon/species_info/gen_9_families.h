@@ -3504,7 +3504,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sScovillainFormSpeciesIdTable,
         .formChangeTable = sScovillainFormChangeTable,
         .learnableAbilities = sScovillainLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_CHLOROPHYLL,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_CAPSAKID
@@ -4825,7 +4825,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sGlimmoraFormSpeciesIdTable,
         .formChangeTable = sGlimmoraFormChangeTable,
         .learnableAbilities = sGlimmoraLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_TOXIC_DEBRIS,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_GLIMMET
@@ -5555,7 +5555,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sTatsugiriFormSpeciesIdTable,
         .formChangeTable = sTatsugiriCurlyFormChangeTable,
         .learnableAbilities = sTatsugiriCurlyLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_STORM_DRAIN,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 
     [SPECIES_TATSUGIRI_DROOPY_MEGA] =
@@ -5615,7 +5615,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sTatsugiriFormSpeciesIdTable,
         .formChangeTable = sTatsugiriDroopyFormChangeTable,
         .learnableAbilities = sTatsugiriDroopyLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_STORM_DRAIN,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 
     [SPECIES_TATSUGIRI_STRETCHY_MEGA] =
@@ -5675,7 +5675,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sTatsugiriFormSpeciesIdTable,
         .formChangeTable = sTatsugiriStretchyFormChangeTable,
         .learnableAbilities = sTatsugiriStretchyLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_STORM_DRAIN,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_TATSUGIRI
@@ -6755,7 +6755,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sBaxcaliburFormSpeciesIdTable,
         .formChangeTable = sBaxcaliburFormChangeTable,
         .learnableAbilities = sBaxcaliburLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_THERMAL_EXCHANGE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_FRIGIBAX

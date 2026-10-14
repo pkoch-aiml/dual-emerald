@@ -1581,7 +1581,7 @@ const struct SpeciesInfo gSpeciesInfoGen7[] =
         .formSpeciesIdTable = sCrabominableFormSpeciesIdTable,
         .formChangeTable = sCrabominableFormChangeTable,
         .learnableAbilities = sCrabominableLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_HYPER_CUTTER,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_CRABRAWLER
@@ -4394,7 +4394,7 @@ const struct SpeciesInfo gSpeciesInfoGen7[] =
         .formSpeciesIdTable = sGolisopodFormSpeciesIdTable,
         .formChangeTable = sGolisopodFormChangeTable,
         .learnableAbilities = sGolisopodLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_WIMP_OUT,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_WIMPOD
@@ -5650,7 +5650,7 @@ const struct SpeciesInfo gSpeciesInfoGen7[] =
         .formSpeciesIdTable = sDrampaFormSpeciesIdTable,
         .formChangeTable = sDrampaFormChangeTable,
         .learnableAbilities = sDrampaLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_BERSERK,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_DRAMPA
@@ -7604,7 +7604,7 @@ const struct SpeciesInfo gSpeciesInfoGen7[] =
         .formSpeciesIdTable = sMagearnaFormSpeciesIdTable,
         .formChangeTable = sMagearnaFormChangeTable,
         .learnableAbilities = sMagearnaLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SOUL_HEART,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
     
     [SPECIES_MAGEARNA_ORIGINAL_MEGA] =
@@ -7666,7 +7666,7 @@ const struct SpeciesInfo gSpeciesInfoGen7[] =
         .formSpeciesIdTable = sMagearnaFormSpeciesIdTable,
         .formChangeTable = sMagearnaOriginalFormChangeTable,
         .learnableAbilities = sMagearnaOriginalLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SOUL_HEART,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_MAGEARNA
@@ -8163,7 +8163,7 @@ const struct SpeciesInfo gSpeciesInfoGen7[] =
         .formSpeciesIdTable = sZeraoraFormSpeciesIdTable,
         .formChangeTable = sZeraoraFormChangeTable,
         .learnableAbilities = sZeraoraLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_VOLT_ABSORB,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_ZERAORA

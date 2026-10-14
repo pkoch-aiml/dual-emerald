@@ -909,7 +909,7 @@ static const struct PickupItem sPickupTable[] =
 
 bool32 ProteanTryChangeType(enum BattlerId battler, enum Ability ability, enum Move move, enum Type moveType)
 {
-      if ((ability == ABILITY_PROTEAN || ability == ABILITY_LIBERO)
+      if ((AbilityOrLearned(battler, ability, ABILITY_PROTEAN) || AbilityOrLearned(battler, ability, ABILITY_LIBERO))
          && !gBattleMons[battler].volatiles.usedProteanLibero
          && !gBattleStruct->bouncedMoveIsUsed
          && (gBattleMons[battler].types[0] != moveType || gBattleMons[battler].types[1] != moveType
@@ -1658,7 +1658,7 @@ void TrySynchronizeActivation(enum BattlerId battlerAtk, enum BattlerId effectBa
         return;
 
     enum Ability effectAbility = GetBattlerAbility(effectBattler);
-    if (effectAbility != ABILITY_SYNCHRONIZE)
+    if (!AbilityOrLearned(effectBattler, effectAbility, ABILITY_SYNCHRONIZE))
         return;
 
     if (effect == MOVE_EFFECT_POISON
@@ -1785,7 +1785,7 @@ static void SetToxicChainPriority(void)
         return;
 
     enum Ability abilityAtk = GetBattlerAbility(gBattlerAttacker);
-    if (abilityAtk == ABILITY_TOXIC_CHAIN
+    if (AbilityOrLearned(gBattlerAttacker, abilityAtk, ABILITY_TOXIC_CHAIN)
      && IsBattlerAlive(gBattlerTarget)
      && CanBePoisoned(gBattlerAttacker, gBattlerTarget, abilityAtk, GetBattlerAbility(gBattlerTarget))
      && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES)
@@ -5025,14 +5025,14 @@ u32 IsFlowerVeilProtected(enum BattlerId battler)
 u32 IsLeafGuardProtected(enum BattlerId battler, enum Ability ability)
 {
     if (IsBattlerWeatherAffected(GetBattlerHoldEffect(battler), GetWeather(), B_WEATHER_SUN))
-        return ability == ABILITY_LEAF_GUARD;
+        return AbilityOrLearned(battler, ability, ABILITY_LEAF_GUARD);
     else
         return 0;
 }
 
 bool32 IsShieldsDownProtected(enum BattlerId battler, enum Ability ability)
 {
-    return (ability == ABILITY_SHIELDS_DOWN
+    return (AbilityOrLearned(battler, ability, ABILITY_SHIELDS_DOWN)
             && GetFormIdFromFormSpeciesId(gBattleMons[battler].species) < GetFormIdFromFormSpeciesId(SPECIES_MINIOR_CORE_RED)); // Minior is not in core form
 }
 
@@ -6480,6 +6480,7 @@ static void Cmd_healpartystatus(void)
         if (species != SPECIES_NONE && species != SPECIES_EGG)
         {
             enum Ability ability;
+            enum Ability learnedAbility = ABILITY_NONE;
             bool32 isAttacker = gBattlerPartyIndexes[gBattlerAttacker] == i;
             bool32 isDoublesPartner = gBattlerPartyIndexes[partner] == i && IsBattlerAlive(partner);
 
@@ -6489,12 +6490,19 @@ static void Cmd_healpartystatus(void)
             else if (GetConfig(B_HEAL_BELL_SOUNDPROOF) > GEN_5 && !isAttacker && !isDoublesPartner)
                 ability = ABILITY_NONE;
             else if (isAttacker)
+            {
                 ability = GetBattlerAbility(gBattlerAttacker);
+                learnedAbility = GetBattlerAbilityInSlot(gBattlerAttacker, BATTLER_ABILITY_LEARNED);
+            }
             else if (isDoublesPartner)
+            {
                 ability = GetBattlerAbility(partner);
+                learnedAbility = GetBattlerAbilityInSlot(partner, BATTLER_ABILITY_LEARNED);
+            }
             else
             {
                 ability = GetAbilityBySpecies(species, abilityNum);
+                learnedAbility = GetMonData(&party[i], MON_DATA_LEARNED_ABILITY);
                 #if TESTING
                 if (gTestRunnerEnabled)
                 {
@@ -6505,7 +6513,7 @@ static void Cmd_healpartystatus(void)
                 #endif
             }
 
-            if (!(isSoundMove && ability == ABILITY_SOUNDPROOF))
+            if (!(isSoundMove && (ability == ABILITY_SOUNDPROOF || learnedAbility == ABILITY_SOUNDPROOF)))
             {
                 toHeal |= (1 << i);
                 TryDeactivateSleepClause(gBattlerAttacker, i);
@@ -6777,7 +6785,7 @@ static void Cmd_recoverbasedonsunlight(void)
         s32 recoverAmount = 0;
         u32 weather = GetWeather();
         enum Ability ability = GetBattlerAbility(gBattlerAttacker);
-        u32 attackerWeather = GetAttackerWeather(GetBattlerHoldEffect(gBattlerAttacker), ability, weather);
+        u32 attackerWeather = GetAttackerWeather(gBattlerAttacker, GetBattlerHoldEffect(gBattlerAttacker), ability, weather);
         u32 healingWeather = attackerWeather & ~B_WEATHER_STRONG_WINDS;
         bool32 isAffectedByMegaSol = FALSE;
         if (GetMoveEffect(gCurrentMove) == EFFECT_SHORE_UP)
@@ -6792,7 +6800,7 @@ static void Cmd_recoverbasedonsunlight(void)
             if (attackerWeather & B_WEATHER_SUN)
             {
                 recoverAmount = 20 * GetNonDynamaxMaxHP(gBattlerAttacker) / 30;
-                if (ability == ABILITY_MEGA_SOL && !(weather & B_WEATHER_SUN))
+                if (AbilityOrLearned(gBattlerAttacker, ability, ABILITY_MEGA_SOL) && !(weather & B_WEATHER_SUN))
                     isAffectedByMegaSol = TRUE;
             }
             else if (!(healingWeather & B_WEATHER_ANY) || GetBattlerHoldEffect(gBattlerAttacker) == HOLD_EFFECT_UTILITY_UMBRELLA)
@@ -6827,7 +6835,7 @@ static void Cmd_recoverbasedonsunlight(void)
             if (attackerWeather & B_WEATHER_SUN)
             {
                 recoverAmount = healingModifier * GetNonDynamaxMaxHP(gBattlerAttacker) / 2;
-                if (ability == ABILITY_MEGA_SOL && !(weather & B_WEATHER_SUN))
+                if (AbilityOrLearned(gBattlerAttacker, ability, ABILITY_MEGA_SOL) && !(weather & B_WEATHER_SUN))
                     isAffectedByMegaSol = TRUE;
             }
             else if (!(healingWeather & B_WEATHER_ANY) || GetBattlerHoldEffect(gBattlerAttacker) == HOLD_EFFECT_UTILITY_UMBRELLA)
@@ -9165,9 +9173,9 @@ bool32 CanBurnHitThaw(enum Move move)
     return FALSE;
 }
 
-bool32 CanMoveThawTarget(enum Ability abilityAtk, enum Move move)
+bool32 CanMoveThawTarget(enum BattlerId battlerAtk, enum Ability abilityAtk, enum Move move)
 {
-    return GetConfig(B_HIT_THAW) >= GEN_6 && !IsSheerForceAffected(move, abilityAtk) && MoveThawsUser(move);
+    return GetConfig(B_HIT_THAW) >= GEN_6 && !IsSheerForceAffected(battlerAtk, move, abilityAtk) && MoveThawsUser(move);
 }
 
 bool32 CanFireMoveThawTarget(enum Move move, enum Type moveType)
@@ -10341,8 +10349,8 @@ void BS_TryBoosterEnergy(void)
             continue;
 
         enum Ability ability = GetBattlerAbility(battler);
-        if (!(ability == ABILITY_PROTOSYNTHESIS && cmd->onFieldStatus != ON_TERRAIN)
-         && !(ability == ABILITY_QUARK_DRIVE && cmd->onFieldStatus != ON_WEATHER))
+        if (!(AbilityOrLearned(battler, ability, ABILITY_PROTOSYNTHESIS) && cmd->onFieldStatus != ON_TERRAIN)
+         && !(AbilityOrLearned(battler, ability, ABILITY_QUARK_DRIVE) && cmd->onFieldStatus != ON_WEATHER))
             continue;
 
         if (ItemBattleEffects(battler, 0, holdEffect, IsOnEffectActivation))
@@ -10963,7 +10971,7 @@ void BS_TryActivateReceiver(void)
     enum Ability receiverAbility = GetBattlerAbility(receiverBattler);
 
     if (IsBattlerAlive(receiverBattler)
-     && (receiverAbility == ABILITY_RECEIVER || receiverAbility == ABILITY_POWER_OF_ALCHEMY)
+     && (AbilityOrLearned(receiverBattler, receiverAbility, ABILITY_RECEIVER) || AbilityOrLearned(receiverBattler, receiverAbility, ABILITY_POWER_OF_ALCHEMY))
      && GetBattlerHoldEffectIgnoreAbility(receiverBattler) != HOLD_EFFECT_ABILITY_SHIELD
      && !gAbilitiesInfo[gBattleMons[faintedBattler].ability].cantBeCopied)
     {
@@ -10986,7 +10994,7 @@ void BS_TryActivateSoulheart(void)
     {
         gEffectBattler = gBattlerAbility = gBattleStruct->soulheartBattlerId++;
         enum Ability ability = GetBattlerAbility(gBattlerAbility);
-        if (ability == ABILITY_SOUL_HEART
+        if (AbilityOrLearned(gBattlerAbility, ability, ABILITY_SOUL_HEART)
             && IsBattlerAlive(gBattlerAbility)
             && !NoAliveMonsForEitherParty()
             && CompareStat(gBattlerAbility, STAT_SPATK, MAX_STAT_STAGE, CMP_LESS_THAN, ability))
@@ -11796,9 +11804,9 @@ void BS_TryToClearPrimalWeather(void)
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
     {
         enum Ability ability = GetBattlerAbility(i);
-        if (((ability == ABILITY_DESOLATE_LAND && gBattleWeather & B_WEATHER_SUN_PRIMAL)
-             || (ability == ABILITY_PRIMORDIAL_SEA && gBattleWeather & B_WEATHER_RAIN_PRIMAL)
-             || (ability == ABILITY_DELTA_STREAM && gBattleWeather & B_WEATHER_STRONG_WINDS))
+        if (((AbilityOrLearned(i, ability, ABILITY_DESOLATE_LAND) && gBattleWeather & B_WEATHER_SUN_PRIMAL)
+             || (AbilityOrLearned(i, ability, ABILITY_PRIMORDIAL_SEA) && gBattleWeather & B_WEATHER_RAIN_PRIMAL)
+             || (AbilityOrLearned(i, ability, ABILITY_DELTA_STREAM) && gBattleWeather & B_WEATHER_STRONG_WINDS))
             && IsBattlerAlive(i))
             shouldNotClear = TRUE;
     }
@@ -11889,7 +11897,7 @@ void BS_JumpIfWeatherAffected(void)
 {
     NATIVE_ARGS(u16 flags, const u8 *jumpInstr);
     u32 weather = cmd->flags;
-    if (GetAttackerWeather(GetBattlerHoldEffect(gBattlerAttacker), GetBattlerAbility(gBattlerAttacker), GetWeather()) & weather)
+    if (GetAttackerWeather(gBattlerAttacker, GetBattlerHoldEffect(gBattlerAttacker), GetBattlerAbility(gBattlerAttacker), GetWeather()) & weather)
         gBattlescriptCurrInstr = cmd->jumpInstr;
     else
         gBattlescriptCurrInstr = cmd->nextInstr;
@@ -12116,7 +12124,7 @@ void BS_TryDefiantRattled(void)
     case ABILITY_COMPETITIVE:
         if (ShouldDefiantCompetitiveActivate(battler, ability))
         {
-            if (ability == ABILITY_DEFIANT)
+            if (AbilityOrLearned(battler, ability, ABILITY_DEFIANT))
                 SetStatChange2(battler, STAT_ATK, 2);
             else
                 SetStatChange2(battler, STAT_SPATK, 2);

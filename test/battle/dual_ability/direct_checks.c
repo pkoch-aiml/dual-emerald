@@ -104,3 +104,54 @@ SINGLE_BATTLE_TEST("Learned Skill Link makes multi-hit moves hit five times")
         MESSAGE("The Pokémon was hit 5 times!");
     }
 }
+
+SINGLE_BATTLE_TEST("Learned Shield Dust blocks secondary effects")
+{
+    GIVEN {
+        ASSUME(MoveHasAdditionalEffectWithChance(MOVE_NUZZLE, MOVE_EFFECT_PARALYSIS, 100) == TRUE);
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_SHIELD_DUST); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_NUZZLE); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_NUZZLE, player);
+        HP_BAR(opponent);
+        NOT MESSAGE("The opposing Wobbuffet is paralyzed, so it may be unable to move!");
+    } THEN {
+        EXPECT(!(opponent->status1 & STATUS1_PARALYSIS));
+    }
+}
+
+SINGLE_BATTLE_TEST("Learned Sheer Force removes secondary effects")
+{
+    GIVEN {
+        ASSUME(MoveHasAdditionalEffectWithChance(MOVE_NUZZLE, MOVE_EFFECT_PARALYSIS, 100) == TRUE);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_SHEER_FORCE); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_NUZZLE); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_NUZZLE, player);
+        HP_BAR(opponent);
+    } THEN {
+        EXPECT(!(opponent->status1 & STATUS1_PARALYSIS));
+    }
+}
+
+SINGLE_BATTLE_TEST("Heal Bell does not cure a benched Pokémon with learned Soundproof (Gen4)")
+{
+    GIVEN {
+        ASSUME(IsSoundMove(MOVE_HEAL_BELL));
+        WITH_CONFIG(B_HEAL_BELL_SOUNDPROOF, GEN_4);
+        PLAYER(SPECIES_WOBBUFFET) { Status1(STATUS1_POISON); }
+        PLAYER(SPECIES_EXPLOUD) { Ability(ABILITY_SCRAPPY); LearnedAbility(ABILITY_SOUNDPROOF); Status1(STATUS1_POISON); }
+        OPPONENT(SPECIES_WYNAUT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_HEAL_BELL, target: player); }
+        TURN { SWITCH(player, 1); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_HEAL_BELL, player);
+        SEND_IN_MESSAGE("Exploud");
+        MESSAGE("Exploud was hurt by its poisoning!");
+    }
+}

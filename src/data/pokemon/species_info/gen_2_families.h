@@ -290,7 +290,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sMeganiumFormSpeciesIdTable,
         .formChangeTable = sMeganiumFormChangeTable,
         .learnableAbilities = sMeganiumLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_OVERGROW,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_CHIKORITA
@@ -865,7 +865,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sFeraligatrFormSpeciesIdTable,
         .formChangeTable = sFeraligatrFormChangeTable,
         .learnableAbilities = sFeraligatrLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_TORRENT,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_TOTODILE
@@ -2320,7 +2320,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sAmpharosFormSpeciesIdTable,
         .formChangeTable = sAmpharosFormChangeTable,
         .learnableAbilities = sAmpharosLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_STATIC,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_MAREEP
@@ -5646,7 +5646,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sHeracrossFormSpeciesIdTable,
         .formChangeTable = sHeracrossFormChangeTable,
         .learnableAbilities = sHeracrossLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_SWARM,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_HERACROSS
@@ -7420,7 +7420,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sSkarmoryFormSpeciesIdTable,
         .formChangeTable = sSkarmoryFormChangeTable,
         .learnableAbilities = sSkarmoryLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_KEEN_EYE,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_GEN_9_MEGA_EVOLUTIONS
 #endif //P_FAMILY_SKARMORY
@@ -7648,7 +7648,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sHoundoomFormSpeciesIdTable,
         .formChangeTable = sHoundoomFormChangeTable,
         .learnableAbilities = sHoundoomLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_EARLY_BIRD,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_HOUNDOUR
@@ -8644,7 +8644,7 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .formSpeciesIdTable = sTyranitarFormSpeciesIdTable,
         .formChangeTable = sTyranitarFormChangeTable,
         .learnableAbilities = sTyranitarLearnableAbilities,
-        .fixedLearnedAbility = ABILITY_GUTS,
+        .fixedLearnedAbility = ABILITY_HONEY_GATHER,
     },
 #endif //P_MEGA_EVOLUTIONS
 #endif //P_FAMILY_LARVITAR

@@ -1721,7 +1721,7 @@ static bool32 CanTwoTurnMoveFireThisTurn(struct BattleCalcValues *cv, bool32 *sh
         return FALSE;
 
     u32 weather = GetWeather();
-    u32 attackerWeather = GetAttackerWeather(cv->holdEffects[cv->battlerAtk], cv->abilities[cv->battlerAtk], weather);
+    u32 attackerWeather = GetAttackerWeather(cv->battlerAtk, cv->holdEffects[cv->battlerAtk], cv->abilities[cv->battlerAtk], weather);
 
     if (attackerWeather == B_WEATHER_NONE)
         return FALSE;
@@ -2433,7 +2433,7 @@ static bool32 ShouldSkipAccuracyCalcPastFirstHit(enum BattlerId battlerAtk, enum
     if (!gSpecialStatuses[battlerAtk].multiHitOn)
         return FALSE;
 
-    if (abilityAtk == ABILITY_SKILL_LINK || holdEffectAtk == HOLD_EFFECT_LOADED_DICE)
+    if (AbilityOrLearned(battlerAtk, abilityAtk, ABILITY_SKILL_LINK) || holdEffectAtk == HOLD_EFFECT_LOADED_DICE)
         return TRUE;
 
     if (moveEffect == EFFECT_TRIPLE_KICK || moveEffect == EFFECT_POPULATION_BOMB)
@@ -2816,9 +2816,9 @@ static inline bool32 DoesBattlerNegateDamage(enum BattlerId battler, enum Abilit
 
     if (gBattleMons[battler].volatiles.transformed)
         return FALSE;
-    if (ability == ABILITY_DISGUISE && IsMimikyuDisguised(battler))
+    if (AbilityOrLearned(battler, ability, ABILITY_DISGUISE) && IsMimikyuDisguised(battler))
         return TRUE;
-    if (ability == ABILITY_ICE_FACE && species == SPECIES_EISCUE_ICE && IsBattleMovePhysical(move))
+    if (AbilityOrLearned(battler, ability, ABILITY_ICE_FACE) && species == SPECIES_EISCUE_ICE && IsBattleMovePhysical(move))
         return TRUE;
 
     return FALSE;
@@ -4088,7 +4088,7 @@ static enum MoveEndResult MoveEndDefrost(struct BattleCalcValues *cv)
             return MOVEEND_RESULT_RUN_SCRIPT;
         }
         else if (IsBattlerAlive(cv->battlerAtk)
-              && CanMoveThawTarget(cv->abilities[cv->battlerAtk], cv->move))
+              && CanMoveThawTarget(cv->battlerAtk, cv->abilities[cv->battlerAtk], cv->move))
         {
             DefrostBattler(battler, gBattleMons[battler].status1);
             BattleScriptCall(battleScript);
@@ -4186,7 +4186,7 @@ static enum MoveEndResult MoveEndMoveBlockRecoil(struct BattleCalcValues *cv)
 
 static enum MoveEndResult MoveEndSheerForce(struct BattleCalcValues *cv)
 {
-    if (IsSheerForceAffected(cv->move, cv->abilities[cv->battlerAtk]))
+    if (IsSheerForceAffected(cv->battlerAtk, cv->move, cv->abilities[cv->battlerAtk]))
         gBattleScripting.moveendState = MOVEEND_ITEMS_EFFECTS_ALL;
     else
         gBattleScripting.moveendState++;
