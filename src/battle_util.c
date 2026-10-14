@@ -4903,6 +4903,16 @@ bool32 IsMoldBreakerTypeAbility(enum BattlerId battler, enum Ability ability, en
     return FALSE;
 }
 
+bool32 IsMoldBreakerTypeAbilityInEitherSlot(enum BattlerId battler, enum Move move)
+{
+    for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
+    {
+        if (IsMoldBreakerTypeAbility(battler, GetBattlerAbilityInSlot(battler, slot), move))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 static inline bool32 CanBreakThroughAbility(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Ability abilityDef, bool32 hasAbilityShield, bool32 ignoreMoldBreaker)
 {
     if (hasAbilityShield || ignoreMoldBreaker || battlerDef == battlerAtk)
@@ -5001,6 +5011,19 @@ bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, b
     return FALSE;
 }
 
+// The ability an ability popup should name for this battler. The popup used to always name the
+// natural ability; when the ability that just fired (gLastUsedAbility) is the battler's learned
+// ability instead, name that.
+enum Ability GetBattlerPopupAbility(enum BattlerId battler)
+{
+    enum Ability learnedAbility = gBattleMons[battler].learnedAbility;
+    if (learnedAbility != ABILITY_NONE
+     && gLastUsedAbility == learnedAbility
+     && gLastUsedAbility != gBattleMons[battler].ability)
+        return learnedAbility;
+    return gBattleMons[battler].ability;
+}
+
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability)
 {
     return BattlerHasAbilityInternal(battler, ability, FALSE, FALSE);
@@ -5013,9 +5036,9 @@ bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability a
 
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability)
 {
-    if (IsBattlerAlive(battler) && GetBattlerAbility(battler) == ability)
+    if (IsBattlerAlive(battler) && BattlerHasAbility(battler, ability))
         return battler + 1;
-    else if (IsBattlerAlive(GetPartnerBattler(battler)) && GetBattlerAbility(GetPartnerBattler(battler)) == ability)
+    else if (IsBattlerAlive(GetPartnerBattler(battler)) && BattlerHasAbility(GetPartnerBattler(battler), ability))
         return GetPartnerBattler(battler) + 1;
     else
         return 0;
@@ -5025,7 +5048,7 @@ u32 IsAbilityOnField(enum Ability ability)
 {
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
     {
-        if (IsBattlerAlive(i) && GetBattlerAbility(i) == ability)
+        if (IsBattlerAlive(i) && BattlerHasAbility(i, ability))
             return i + 1;
     }
 
@@ -5033,6 +5056,13 @@ u32 IsAbilityOnField(enum Ability ability)
 }
 
 u32 IsAbilityPreventingEscape(enum BattlerId battler)
+{
+    return GetAbilityPreventingEscape(battler, NULL);
+}
+
+// Returns the trapping battler + 1, or 0. If trappingAbility isn't NULL, it receives the ability
+// doing the trapping, which may be in either of that battler's slots.
+u32 GetAbilityPreventingEscape(enum BattlerId battler, enum Ability *trappingAbility)
 {
     if (GetConfig(B_GHOSTS_ESCAPE) >= GEN_6 && IS_BATTLER_OF_TYPE(battler, TYPE_GHOST))
         return 0;
@@ -5043,16 +5073,20 @@ u32 IsAbilityPreventingEscape(enum BattlerId battler)
         if (battler == battlerDef || IsBattlerAlly(battler, battlerDef))
             continue;
 
-        enum Ability ability = GetBattlerAbility(battlerDef);
+        enum Ability ability = ABILITY_NONE;
+        if (BattlerHasAbility(battlerDef, ABILITY_SHADOW_TAG) && (B_SHADOW_TAG_ESCAPE <= GEN_3 || !BattlerHasAbility(battler, ABILITY_SHADOW_TAG)))
+            ability = ABILITY_SHADOW_TAG;
+        else if (BattlerHasAbility(battlerDef, ABILITY_ARENA_TRAP) && isBattlerGrounded)
+            ability = ABILITY_ARENA_TRAP;
+        else if (BattlerHasAbility(battlerDef, ABILITY_MAGNET_PULL) && IS_BATTLER_OF_TYPE(battler, TYPE_STEEL))
+            ability = ABILITY_MAGNET_PULL;
 
-        if (ability == ABILITY_SHADOW_TAG && (B_SHADOW_TAG_ESCAPE <= GEN_3 || GetBattlerAbility(battler) != ABILITY_SHADOW_TAG))
+        if (ability != ABILITY_NONE)
+        {
+            if (trappingAbility != NULL)
+                *trappingAbility = ability;
             return battlerDef + 1;
-
-        if (ability == ABILITY_ARENA_TRAP && isBattlerGrounded)
-            return battlerDef + 1;
-
-        if (ability == ABILITY_MAGNET_PULL && IS_BATTLER_OF_TYPE(battler, TYPE_STEEL))
-            return battlerDef + 1;
+        }
     }
 
     return 0;
@@ -10073,7 +10107,7 @@ void ClearDamageCalcResults(void)
     gBattleStruct->attackAnimPlayed = FALSE;
     gBattleScripting.savedDmg = 0;
     if (gCurrentMove != MOVE_NONE)
-        gBattleStruct->moldBreakerActive = IsMoldBreakerTypeAbility(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), gCurrentMove) || MoveIgnoresTargetAbility(gCurrentMove);
+        gBattleStruct->moldBreakerActive = IsMoldBreakerTypeAbilityInEitherSlot(gBattlerAttacker, gCurrentMove) || MoveIgnoresTargetAbility(gCurrentMove);
     else
         gBattleStruct->moldBreakerActive = FALSE;
 }

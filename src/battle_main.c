@@ -3668,6 +3668,7 @@ u8 IsRunningFromBattleImpossible(enum BattlerId battler)
 {
     enum HoldEffect holdEffect;
     u32 i;
+    enum Ability trappingAbility = ABILITY_NONE;
 
     if (FlagGet(WE_FLAG_NO_RUNNING))
     {
@@ -3700,13 +3701,13 @@ u8 IsRunningFromBattleImpossible(enum BattlerId battler)
         return BATTLE_RUN_SUCCESS;
     if (gBattleTypeFlags & BATTLE_TYPE_LINK)
         return BATTLE_RUN_SUCCESS;
-    if (GetBattlerAbility(battler) == ABILITY_RUN_AWAY)
+    if (BattlerHasAbility(battler, ABILITY_RUN_AWAY))
         return BATTLE_RUN_SUCCESS;
 
-    if ((i = IsAbilityPreventingEscape(battler)))
+    if ((i = GetAbilityPreventingEscape(battler, &trappingAbility)))
     {
         gBattleScripting.battler = i - 1;
-        gLastUsedAbility = gBattleMons[i - 1].ability;
+        gLastUsedAbility = trappingAbility;
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_PREVENTS_ESCAPE;
         return BATTLE_RUN_FAILURE;
     }
@@ -3788,6 +3789,7 @@ enum
 static void HandleTurnActionSelectionState(void)
 {
     s32 i;
+    enum Ability trappingAbility = ABILITY_NONE;
 
     gBattleCommunication[ACTIONS_CONFIRMED_COUNT] = 0;
     for (enum BattlerId battlerIndex = 0; battlerIndex < gBattlersCount; battlerIndex++)
@@ -3952,9 +3954,9 @@ static void HandleTurnActionSelectionState(void)
                         BtlController_EmitChoosePokemon(battler, B_COMM_TO_CONTROLLER, PARTY_ACTION_CANT_SWITCH, PARTY_SIZE, ABILITY_NONE, 0, gBattleStruct->battlerPartyOrders[battler]);
                     }
                     else if (GetItemHoldEffect(gBattleMons[battler].item) != HOLD_EFFECT_SHED_SHELL
-                      && (i = IsAbilityPreventingEscape(battler)))   // must be last to keep i value integrity
+                      && (i = GetAbilityPreventingEscape(battler, &trappingAbility)))   // must be last to keep i value integrity
                     {
-                        BtlController_EmitChoosePokemon(battler, B_COMM_TO_CONTROLLER, PARTY_ACTION_ABILITY_PREVENTS, PARTY_SIZE, gBattleMons[i - 1].ability, i - 1, gBattleStruct->battlerPartyOrders[battler]);
+                        BtlController_EmitChoosePokemon(battler, B_COMM_TO_CONTROLLER, PARTY_ACTION_ABILITY_PREVENTS, PARTY_SIZE, trappingAbility, i - 1, gBattleStruct->battlerPartyOrders[battler]);
                     }
                     else
                     {

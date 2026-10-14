@@ -72,7 +72,7 @@ SINGLE_BATTLE_TEST("Mega Evolution replaces the learned ability with the Mega fo
         EXPECT_EQ(player->species, SPECIES_VENUSAUR_MEGA);
         EXPECT_EQ(player->learnedAbility, GetSpeciesFixedLearnedAbility(SPECIES_VENUSAUR_MEGA));
         // The stored learned ability is untouched and returns after battle.
-        EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_LEARNED_ABILITY), ABILITY_INTIMIDATE);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY), ABILITY_INTIMIDATE);
     }
 }
 
@@ -87,7 +87,7 @@ SINGLE_BATTLE_TEST("Primal Reversion replaces the learned ability with the Prima
     } THEN {
         EXPECT_EQ(player->species, SPECIES_KYOGRE_PRIMAL);
         EXPECT_EQ(player->learnedAbility, GetSpeciesFixedLearnedAbility(SPECIES_KYOGRE_PRIMAL));
-        EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_LEARNED_ABILITY), ABILITY_INTIMIDATE);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY), ABILITY_INTIMIDATE);
     }
 }
 

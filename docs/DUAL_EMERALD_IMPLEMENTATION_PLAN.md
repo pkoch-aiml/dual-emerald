@@ -152,9 +152,11 @@ The work is split into stages. Each stage builds, passes the full `make check`, 
 - `GetBattlerAbility(battler)` keeps meaning "natural slot" during the migration, so unconverted call sites behave exactly as before.
 - **Neutralizing Gas (provisional, see the open questions):** the slot holding Neutralizing Gas stays active, and every other slot on the field, including the holder's other slot, is suppressed.
 
-### 2.3 Field-wide queries and Mold Breaker
-- `IsAbilityOnSide`, `IsAbilityOnField`, `IsAbilityPreventingEscape` and similar helpers use `BattlerHasAbility`.
-- Mold Breaker activation (`moldBreakerActive`, `IsMoldBreakerTypeAbility`) checks both of the attacker's slots.
+### 2.3 Field-wide queries and Mold Breaker ✅
+- `IsAbilityOnSide`, `IsAbilityOnField` and escape prevention (Shadow Tag, Arena Trap, Magnet Pull, plus the Run Away check) use `BattlerHasAbility`. `GetAbilityPreventingEscape(battler, &ability)` also reports *which* ability traps, so the message names the right one.
+- Mold Breaker activation at move start checks both of the attacker's slots (`IsMoldBreakerTypeAbilityInEitherSlot`).
+- Ability popups: `GetBattlerPopupAbility` names the learned ability when it is the one that just fired (`gLastUsedAbility`). Otherwise it names the natural ability, as before.
+- Tests in `test/battle/dual_ability/field_queries.c`: learned Damp, a partner's learned Sweet Veil, learned Arena Trap (with the right ability name), learned Run Away, and learned Mold Breaker vs. Levitate.
 
 ### 2.4 Direct comparisons
 - Convert `GetBattlerAbility(b) == ABILITY_X` and `ability = GetBattlerAbility(b); ... ability == ABILITY_X` to `BattlerHasAbility`, file by file: hold effects, end of turn, move resolution, script commands, util.

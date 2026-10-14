@@ -107,6 +107,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
 bool32 TryPrimalReversion(enum BattlerId battler);
 bool32 IsNeutralizingGasOnField(void);
 bool32 IsMoldBreakerTypeAbility(enum BattlerId battler, enum Ability ability, enum Move move);
+bool32 IsMoldBreakerTypeAbilityInEitherSlot(enum BattlerId battler, enum Move move);
 enum Ability GetBattlerAbilityIgnoreMoldBreaker(enum BattlerId battler);
 enum Ability GetBattlerAbilityNoAbilityShield(enum BattlerId battler);
 enum Ability GetBattlerAbilityInternal(enum BattlerId battler, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
@@ -125,10 +126,12 @@ enum Ability GetBattlerAbilityInSlotInternal(enum BattlerId battler, enum Battle
 enum Ability GetBattlerAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot);
 bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability);
+enum Ability GetBattlerPopupAbility(enum BattlerId battler);
 bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnField(enum Ability ability);
 u32 IsAbilityPreventingEscape(enum BattlerId battler);
+u32 GetAbilityPreventingEscape(enum BattlerId battler, enum Ability *trappingAbility);
 bool32 IsBattlerProtected(struct BattleCalcValues *cv);
 enum ProtectType GetProtectType(enum ProtectMethod method);
 bool32 CanBattlerEscape(enum BattlerId battler); // no ability check

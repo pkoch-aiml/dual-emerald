@@ -2710,7 +2710,7 @@ void UpdateAbilityPopup(enum BattlerId battler)
 {
     u8 *spriteIds = gBattleStruct->abilityPopUpSpriteIds[battler];
     enum Ability ability = (gBattleScripting.abilityPopupOverwrite) ? gBattleScripting.abilityPopupOverwrite
-                                                           : gBattleMons[battler].ability;
+                                                           : GetBattlerPopupAbility(battler);
     PrintAbilityOnAbilityPopUp(ability, spriteIds[0], spriteIds[1]);
 }
 
