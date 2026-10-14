@@ -107,6 +107,27 @@ extern const struct ItemInfo gItemsInfo[];
 extern struct BagPocket gBagPockets[];
 extern const struct TmHmIndexKey gTMHMItemMoveIds[];
 
+// Dual Emerald: Ability Machines teach a learned ability. They're numbered AM01, AM02, ... in item order.
+extern const u16 gAbilityMachineAbilities[NUM_ABILITY_MACHINES];
+
+static inline bool32 IsItemAM(enum Item item)
+{
+    return item >= ITEM_AM01 && item <= ITEM_AM_LAST;
+}
+
+// The AM's number (1 for AM01), or 0 if the item isn't an AM.
+static inline u32 GetItemAMNumber(enum Item item)
+{
+    return IsItemAM(item) ? item - ITEM_AM01 + 1 : 0;
+}
+
+static inline enum Ability GetItemAMAbility(enum Item item)
+{
+    return IsItemAM(item) ? gAbilityMachineAbilities[item - ITEM_AM01] : ABILITY_NONE;
+}
+
+bool32 IsAMAbility(enum Ability ability);
+
 #define UNPACK_ITEM_TO_TM_INDEX(_tm) case CAT(ITEM_TM_, _tm): return CAT(ENUM_TM_HM_, _tm) + 1;
 #define UNPACK_ITEM_TO_HM_INDEX(_hm) case CAT(ITEM_HM_, _hm): return CAT(ENUM_TM_HM_, _hm) + 1;
 #define UNPACK_ITEM_TO_TM_MOVE_ID(_tm) case CAT(ITEM_TM_, _tm): return CAT(MOVE_, _tm);

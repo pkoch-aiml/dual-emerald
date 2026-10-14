@@ -72,6 +72,10 @@ static void BootUpSoundTMHM(u8);
 static void Task_ShowTMHMContainedMessage(u8);
 static void UseTMHMYesNo(u8);
 static void UseTMHM(u8);
+static void BootUpSoundAM(u8);
+static void Task_ShowAMContainedMessage(u8);
+static void UseAMYesNo(u8);
+static void UseAM(u8);
 static void Task_StartUseRepel(u8);
 static void Task_StartUseLure(u8 taskId);
 static void Task_UseRepel(u8);
@@ -91,6 +95,8 @@ static const u8 sText_PowderQty[] = _("POWDER QTY: {STR_VAR_1}{PAUSE_UNTIL_PRESS
 static const u8 sText_BootedUpTM[] = _("Booted up a TM.");
 static const u8 sText_BootedUpHM[] = _("Booted up an HM.");
 static const u8 sText_TMHMContainedVar1[] = _("It contained\n{STR_VAR_1}.\pTeach {STR_VAR_1}\nto a POKéMON?");
+static const u8 sText_BootedUpAM[] = _("Booted up an AM.");
+static const u8 sText_AMContainedVar1[] = _("It contained the Ability\n{STR_VAR_1}.\pTeach {STR_VAR_1}\nto a POKéMON?");
 static const u8 sText_UsedVar2WildLured[] = _("{PLAYER} used the\n{STR_VAR_2}.\pWild POKéMON will be lured.{PAUSE_UNTIL_PRESS}");
 static const u8 sText_UsedVar2WildRepelled[] = _("{PLAYER} used the\n{STR_VAR_2}.\pWild POKéMON will be repelled.{PAUSE_UNTIL_PRESS}");
 static const u8 sText_PlayedPokeFluteCatchy[] = _("Played the POKé FLUTE.\pNow, that's a catchy tune!{PAUSE_UNTIL_PRESS}");
@@ -118,6 +124,12 @@ static const u8 sClockwiseDirections[] = {DIR_NORTH, DIR_EAST, DIR_SOUTH, DIR_WE
 static const struct YesNoFuncTable sUseTMHMYesNoFuncTable =
 {
     .yesFunc = UseTMHM,
+    .noFunc = CloseItemMessage,
+};
+
+static const struct YesNoFuncTable sUseAMYesNoFuncTable =
+{
+    .yesFunc = UseAM,
     .noFunc = CloseItemMessage,
 };
 
@@ -224,6 +236,8 @@ u8 CheckIfItemIsTMHMOrEvolutionStone(enum Item itemId)
 {
     if (GetItemFieldFunc(itemId) == ItemUseOutOfBattle_TMHM)
         return ITEM_IS_TM_HM;
+    else if (GetItemFieldFunc(itemId) == ItemUseOutOfBattle_AM)
+        return ITEM_IS_AM;
     else if (GetItemFieldFunc(itemId) == ItemUseOutOfBattle_EvolutionStone)
         return ITEM_IS_EVOLUTION_STONE;
     else
@@ -943,6 +957,39 @@ static void UseTMHMYesNo(u8 taskId)
 static void UseTMHM(u8 taskId)
 {
     gItemUseCB = ItemUseCB_TMHM;
+    SetUpItemUseCallback(taskId);
+}
+
+// Dual Emerald: Ability Machines, modeled on TMs.
+void ItemUseOutOfBattle_AM(u8 taskId)
+{
+    DisplayItemMessage(taskId, FONT_NORMAL, sText_BootedUpAM, BootUpSoundAM);
+}
+
+static void BootUpSoundAM(u8 taskId)
+{
+    PlaySE(SE_PC_LOGIN);
+    gTasks[taskId].func = Task_ShowAMContainedMessage;
+}
+
+static void Task_ShowAMContainedMessage(u8 taskId)
+{
+    if (JOY_NEW(A_BUTTON | B_BUTTON))
+    {
+        StringCopy(gStringVar1, gAbilitiesInfo[GetItemAMAbility(gSpecialVar_ItemId)].name);
+        StringExpandPlaceholders(gStringVar4, sText_AMContainedVar1);
+        DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, UseAMYesNo);
+    }
+}
+
+static void UseAMYesNo(u8 taskId)
+{
+    BagMenu_YesNo(taskId, ITEMWIN_YESNO_HIGH, &sUseAMYesNoFuncTable);
+}
+
+static void UseAM(u8 taskId)
+{
+    gItemUseCB = ItemUseCB_AM;
     SetUpItemUseCallback(taskId);
 }
 

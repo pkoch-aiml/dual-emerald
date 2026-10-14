@@ -1735,6 +1735,11 @@ u16 GetMysteryGiftCardStat(void)
 
 bool8 BufferTMHMMoveName(void)
 {
+    if (IsItemAM(gSpecialVar_0x8004))
+    {
+        StringCopy(gStringVar2, gAbilitiesInfo[GetItemAMAbility(gSpecialVar_0x8004)].name); // Dual Emerald
+        return TRUE;
+    }
     if (gItemsInfo[gSpecialVar_0x8004].pocket == POCKET_TM_HM)
     {
         StringCopy(gStringVar2, GetMoveName(ItemIdToBattleMoveId(gSpecialVar_0x8004)));

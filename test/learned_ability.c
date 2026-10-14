@@ -3,6 +3,8 @@
 #include "daycare.h"
 #include "egg_hatch.h"
 #include "event_data.h"
+#include "item.h"
+#include "item_use.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
 #include "script_menu.h"
@@ -290,4 +292,221 @@ TEST("Debug: Set Learned Ability sets the chosen ability, or clears it for None"
     gSpecialVar_Result = 0;
     DebugNative_SetLearnedAbility();
     EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_LEARNED_ABILITY), ABILITY_NONE);
+}
+
+// Dual Emerald: ability memory (Milestone 4).
+
+TEST("Ability memory round-trips every 8-bit value without disturbing neighboring fields")
+{
+    u32 i, memory = 0;
+    struct Pokemon mon;
+    enum Move move3 = MOVES_COUNT - 1, move4 = MOVES_COUNT - 2;
+    bool32 hyperTrained = TRUE;
+    for (i = 0; i < (1 << 8); i++)
+        PARAMETRIZE { memory = i; }
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_MOVE3, &move3);
+    SetMonData(&mon, MON_DATA_MOVE4, &move4);
+    SetMonData(&mon, MON_DATA_HYPER_TRAINED_HP, &hyperTrained);
+    SetMonData(&mon, MON_DATA_ABILITY_MEMORY, &memory);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), memory);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_MOVE3), move3);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_MOVE4), move4);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_HYPER_TRAINED_HP), hyperTrained);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_SANITY_IS_BAD_EGG), FALSE);
+}
+
+TEST("Newly created Pokémon have an empty ability memory")
+{
+    struct Pokemon mon;
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), 0);
+}
+
+TEST("Setting a learnable ability as the learned ability records it in the ability memory")
+{
+    struct Pokemon mon;
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    u32 none = ABILITY_NONE, first, second;
+    ASSUME(learnable[0] != ABILITY_NONE && learnable[1] != ABILITY_NONE);
+    first = learnable[0];
+    second = learnable[1];
+
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &second);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), 1u << 1);
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &first);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), (1u << 0) | (1u << 1));
+    // Clearing the learned ability doesn't forget anything.
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &none);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), (1u << 0) | (1u << 1));
+}
+
+TEST("An ability not on the species' learnable list isn't recorded in the ability memory")
+{
+    struct Pokemon mon;
+    u32 illegal = ABILITY_STANCE_CHANGE;
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    for (u32 i = 0; learnable[i] != ABILITY_NONE; i++)
+        ASSUME(learnable[i] != ABILITY_STANCE_CHANGE);
+
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &illegal);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_LEARNED_ABILITY), ABILITY_STANCE_CHANGE);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), 0);
+}
+
+TEST("Ability memory survives evolution and PC storage")
+{
+    struct Pokemon mon, withdrawn;
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WYNAUT);
+    u32 ability;
+    enum Species evolvedSpecies = SPECIES_WOBBUFFET;
+    ASSUME(learnable[0] != ABILITY_NONE);
+    ability = learnable[0];
+
+    CreateMon(&mon, SPECIES_WYNAUT, 15, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &ability);
+    SetMonData(&mon, MON_DATA_SPECIES, &evolvedSpecies);
+    CalculateMonStats(&mon);
+    // Right-superset rule: entry 0 of the pre-evolution's list is entry 0 of the evolution's list.
+    EXPECT_EQ(GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET)[0], ability);
+    EXPECT_EQ(GetMonData(&mon, MON_DATA_ABILITY_MEMORY), 1u << 0);
+
+    SetBoxMonAt(0, 0, &mon.box);
+    BoxMonAtToMon(0, 0, &withdrawn);
+    EXPECT_EQ(GetMonData(&withdrawn, MON_DATA_ABILITY_MEMORY), 1u << 0);
+}
+
+// Dual Emerald: Ability Machines and teaching (Milestone 4).
+
+TEST("Every AM is a reusable TM-pocket item that teaches a distinct ability")
+{
+    for (enum Item item = ITEM_AM01; item <= ITEM_AM_LAST; item++)
+    {
+        enum Ability ability = GetItemAMAbility(item);
+        EXPECT(IsItemAM(item));
+        EXPECT_NE(ability, ABILITY_NONE);
+        EXPECT(!gAbilitiesInfo[ability].cantBeDoubled);
+        EXPECT_EQ(GetItemPocket(item), POCKET_TM_HM);
+        EXPECT_EQ(GetItemImportance(item), 1);
+        EXPECT_EQ(CheckIfItemIsTMHMOrEvolutionStone(item), ITEM_IS_AM);
+        for (enum Item other = ITEM_AM01; other < item; other++)
+            EXPECT_NE(GetItemAMAbility(other), ability);
+    }
+    EXPECT(!IsItemAM(ITEM_TM01));
+    EXPECT_EQ(GetItemAMAbility(ITEM_TM01), ABILITY_NONE);
+}
+
+TEST("The TM/HM pocket has room for every TM, HM and AM")
+{
+    EXPECT_GE(BAG_TMHM_COUNT, NUM_ALL_MACHINES + NUM_ABILITY_MACHINES);
+}
+
+TEST("CanMonLearnAbility accepts abilities on the species' list and rejects others")
+{
+    struct Pokemon mon;
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    EXPECT_EQ(CanMonLearnAbility(&mon, learnable[0]), ABILITY_LEARN_OK);
+    EXPECT_EQ(CanMonLearnAbility(&mon, ABILITY_STANCE_CHANGE), ABILITY_LEARN_INCOMPATIBLE);
+    EXPECT_EQ(CanMonLearnAbility(&mon, ABILITY_NONE), ABILITY_LEARN_INCOMPATIBLE);
+}
+
+TEST("CanMonLearnAbility rejects the current learned ability and eggs")
+{
+    struct Pokemon mon;
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    u32 ability = learnable[0];
+    bool32 isEgg = TRUE;
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &ability);
+    EXPECT_EQ(CanMonLearnAbility(&mon, ability), ABILITY_LEARN_ALREADY_LEARNED);
+    SetMonData(&mon, MON_DATA_IS_EGG, &isEgg);
+    EXPECT_EQ(CanMonLearnAbility(&mon, ability), ABILITY_LEARN_EGG);
+}
+
+TEST("CanMonLearnAbility blocks learning a cantBeDoubled ability that is already the natural ability")
+{
+    struct Pokemon mon;
+    u32 abilityNum = 0;
+
+    CreateMon(&mon, SPECIES_AEGISLASH_SHIELD, 50, 0, OTID_STRUCT_PLAYER_ID);
+    ASSUME(GetMonAbility(&mon) == ABILITY_STANCE_CHANGE);
+    ASSUME(gAbilitiesInfo[ABILITY_STANCE_CHANGE].cantBeDoubled);
+    EXPECT_EQ(CanMonLearnAbility(&mon, ABILITY_STANCE_CHANGE), ABILITY_LEARN_CANT_BE_DOUBLED);
+
+    // Only flagged abilities are blocked: an unflagged AM ability is learnable (Mew learns every AM).
+    CreateMon(&mon, SPECIES_MEW, 100, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_ABILITY_NUM, &abilityNum);
+    ASSUME(!gAbilitiesInfo[ABILITY_INTIMIDATE].cantBeDoubled);
+    EXPECT_EQ(CanMonLearnAbility(&mon, ABILITY_INTIMIDATE), ABILITY_LEARN_OK);
+}
+
+TEST("A learnsAllAMs species can learn every AM ability and remembers its whole list plus every AM")
+{
+    struct Pokemon mon;
+    u16 remembered[MAX_REMEMBERED_ABILITIES];
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_MEW);
+    u32 count, i, j;
+    CreateMon(&mon, SPECIES_MEW, 100, 0, OTID_STRUCT_PLAYER_ID);
+
+    count = GetMonRememberedAbilities(&mon.box, remembered);
+    for (i = 0; learnable[i] != ABILITY_NONE; i++)
+    {
+        bool32 found = FALSE;
+        for (j = 0; j < count; j++)
+            found |= (remembered[j] == learnable[i]);
+        EXPECT(found);
+    }
+    for (i = 0; i < NUM_ABILITY_MACHINES; i++)
+    {
+        bool32 found = FALSE;
+        EXPECT(CanSpeciesLearnAbility(SPECIES_MEW, gAbilityMachineAbilities[i]));
+        for (j = 0; j < count; j++)
+            found |= (remembered[j] == gAbilityMachineAbilities[i]);
+        EXPECT(found);
+    }
+}
+
+TEST("Remembered abilities come from the ability memory; cross-trainable ones add the natural ability")
+{
+    struct Pokemon mon;
+    u16 abilities[MAX_CROSS_TRAINABLE_ABILITIES];
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    u32 learned, abilityNum = 0;
+    ASSUME(learnable[1] != ABILITY_NONE);
+    learned = learnable[1];
+
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_ABILITY_NUM, &abilityNum);
+    EXPECT_EQ(GetMonRememberedAbilities(&mon.box, abilities), 0);
+
+    SetMonData(&mon, MON_DATA_LEARNED_ABILITY, &learned);
+    EXPECT_EQ(GetMonRememberedAbilities(&mon.box, abilities), 1);
+    EXPECT_EQ(abilities[0], learned);
+
+    EXPECT_EQ(GetMonCrossTrainableAbilities(&mon.box, abilities), 2);
+    EXPECT_EQ(abilities[0], learned);
+    EXPECT_EQ(abilities[1], GetMonAbility(&mon));
+}
+
+TEST("Changing the natural ability changes the cross-trainable set")
+{
+    struct Pokemon mon;
+    u16 abilities[MAX_CROSS_TRAINABLE_ABILITIES];
+    u32 abilityNum;
+    ASSUME(GetSpeciesAbility(SPECIES_WOBBUFFET, 0) != GetSpeciesAbility(SPECIES_WOBBUFFET, 2));
+    ASSUME(GetSpeciesAbility(SPECIES_WOBBUFFET, 2) != ABILITY_NONE);
+    CreateMon(&mon, SPECIES_WOBBUFFET, 100, 0, OTID_STRUCT_PLAYER_ID);
+
+    abilityNum = 0;
+    SetMonData(&mon, MON_DATA_ABILITY_NUM, &abilityNum);
+    EXPECT_EQ(GetMonCrossTrainableAbilities(&mon.box, abilities), 1);
+    EXPECT_EQ(abilities[0], GetSpeciesAbility(SPECIES_WOBBUFFET, 0));
+
+    abilityNum = 2; // like an Ability Patch
+    SetMonData(&mon, MON_DATA_ABILITY_NUM, &abilityNum);
+    EXPECT_EQ(GetMonCrossTrainableAbilities(&mon.box, abilities), 1);
+    EXPECT_EQ(abilities[0], GetSpeciesAbility(SPECIES_WOBBUFFET, 2));
 }

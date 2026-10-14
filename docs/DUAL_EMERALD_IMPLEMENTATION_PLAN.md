@@ -269,7 +269,27 @@ There's one test file for each rule in the design doc:
 - **Illusion:** no new work. It already has `cantBeCopied`, `cantBeSwapped` and `cantBeTraced`, so copy effects fail, and it's on no learnable list. Add one test confirming that Role Play/Receiver can't move it into a slot.
 
 ## Milestone 4: Getting learned abilities
-1. **Ability memory:** fill the reserved 9 bits with a bitmask of the pool entries the mon has ever held **as its learned ability**. Natural abilities are never recorded. The right-superset rule means evolution needs no remapping.
+
+**Decisions** (user, 2026-10-14):
+- AMs are reusable, like the expansion's modern TMs.
+- Cross-training at the PC takes both the source and the target from the party (may be revisited in a polish pass).
+- Starting AM list: Intimidate, Swarm, Run Away, Stench, Illuminate, Frisk, Sturdy, Infiltrator, Plus, Minus, Natural Cure. The real list and AM placement are Milestone 6.
+- The Ability Relearner is a debug-menu entry for now; Milestone 6 places an NPC.
+
+**Stages:**
+- 4.1 ✅ Ability memory. 8 bits (`abilityMemoryLo:5` and `abilityMemoryHi:3`, formerly `unused_04`/`unused_06` in substruct 1) behind `MON_DATA_ABILITY_MEMORY`, one bit per learnable-list entry. Setting the learned ability to a list entry records its bit, so every teaching path remembers it automatically; abilities not on the list (e.g. via debug) aren't recorded, and clearing the slot forgets nothing. Tests in `test/learned_ability.c` (5).
+- 4.2 ✅ AM items, the TM-pocket flow, and the shared helpers.
+  - **Items:** `ITEM_AM01`–`ITEM_AM11`, appended after the last item, map to their abilities through `gAbilityMachineAbilities` (`src/item.c`; helpers `IsItemAM`, `GetItemAMNumber`, `GetItemAMAbility`, `IsAMAbility`). They're reusable (`importance = 1`) and use the Ability Capsule icon as a placeholder.
+  - **Save format:** the TM/HM pocket grew from 64 to 100 slots (user's choice: saves from earlier builds don't load). `test/save.c` records the new SaveBlock1 size.
+  - **Bag:** labels read "AM01 Intimidate", AMs sort after the TMs and HMs (by number or by ability name), and choosing one shows its description rather than move data. The shop, the `bufferTMHMMoveName` special and the debug Give Item list name the ability.
+  - **Teaching:** "Booted up an AM… Teach X to a Pokémon?", then the party menu shows ABLE / NOT ABLE / LEARNED. If the target already has a learned ability, it asks before replacing it. `StartTeachAbilityTask` (`party_menu.c`) is shared with the later teaching paths.
+  - **Helpers (`pokemon.c`):** `CanSpeciesLearnAbility` (on the list, or `learnsAllAMs` and an AM ability). `CanMonLearnAbility` is what every teaching path calls; it rejects eggs, incompatible abilities, the current learned ability, and a `cantBeDoubled` ability that's already the natural one. `GetMonRememberedAbilities` and `GetMonCrossTrainableAbilities` provide the remembered and cross-trainable sets.
+  - Tests in `test/learned_ability.c` (8).
+- 4.3 Cross-training from the PC.
+- 4.4 Ability Relearner (debug menu) and a tutor script special.
+- 4.5 Scripted learned abilities (`givemon`, wild battles, `trainerproc`).
+
+1. **Ability memory:** fill 8 spare bits with a bitmask of the pool entries the mon has ever held **as its learned ability**. Natural abilities are never recorded. The right-superset rule means evolution needs no remapping.
 2. **AM table:** a constant table mapping each AM item to its ability, which code can loop over. Compatibility checks, and the remembered set for `learnsAllAMs` species, both read from it.
 3. **AMs:** add AM items to the **TM/HM pocket** (`POCKET_TM_HM`), listed after the TMs and HMs. Add a party-menu flow modeled on TMs and `ItemUseCB_AbilityCapsule` (`src/party_menu.c:5031`), and a compatibility check. An AM is compatible if its ability is in `learnableAbilities` or the species has `learnsAllAMs`.
 4. **Shared helpers:**

@@ -1052,9 +1052,25 @@ enum __attribute__((packed)) Item
     ITEM_TATSUGIRINITE = 872,
     ITEM_GLIMMORANITE = 873,
 
+    // Dual Emerald: Ability Machines. Each one's ability is in gAbilityMachineAbilities (src/item.c).
+    ITEM_AM01 = 874,
+    ITEM_AM02 = 875,
+    ITEM_AM03 = 876,
+    ITEM_AM04 = 877,
+    ITEM_AM05 = 878,
+    ITEM_AM06 = 879,
+    ITEM_AM07 = 880,
+    ITEM_AM08 = 881,
+    ITEM_AM09 = 882,
+    ITEM_AM10 = 883,
+    ITEM_AM11 = 884,
+    ITEM_AM_LAST = ITEM_AM11,
+
     ITEMS_COUNT,
     ITEM_FIELD_ARROW = ITEMS_COUNT,
 };
+
+#define NUM_ABILITY_MACHINES (ITEM_AM_LAST - ITEM_AM01 + 1) // Dual Emerald
 
 // A special item id associated with "Cancel"/"Exit" etc. in a list of items or decorations
 // Its icon is defined at ITEMS_COUNT as the "return to field" arrow

@@ -938,12 +938,36 @@ static void LoadBagItemListBuffers(u8 pocketId)
     gMultiuseListMenuTemplate.maxShowed = gBagMenu->numShownItems[pocketId];
 }
 
+// Dual Emerald: AMs sort after the TMs and HMs, by AM number.
+static u32 GetTMPocketSortIndex(enum Item itemId)
+{
+    if (IsItemAM(itemId))
+        return NUM_ALL_MACHINES + GetItemAMNumber(itemId);
+    return GetItemTMHMIndex(itemId);
+}
+
+static const u8 *GetTMPocketSortName(enum Item itemId)
+{
+    if (IsItemAM(itemId))
+        return gAbilitiesInfo[GetItemAMAbility(itemId)].name;
+    return GetMoveName(GetTMHMMoveId(GetItemTMHMIndex(itemId)));
+}
+
 static void GetItemNameFromPocket(u8 *dest, enum Item itemId)
 {
     u8 *end;
     switch (gBagPosition.pocket)
     {
     case POCKET_TM_HM:
+        if (IsItemAM(itemId))
+        {
+            // Dual Emerald: "AM01 Intimidate"
+            end = StringCopy(gStringVar2, gAbilitiesInfo[GetItemAMAbility(itemId)].name);
+            PrependFontIdToFit(gStringVar2, end, FONT_NARROW, 58);
+            ConvertIntToDecimalStringN(gStringVar1, GetItemAMNumber(itemId), STR_CONV_MODE_LEADING_ZEROS, 2);
+            StringExpandPlaceholders(dest, COMPOUND_STRING("AM{STR_VAR_1}{CLEAR 3}{STR_VAR_2}"));
+            break;
+        }
         end = StringCopy(gStringVar2, GetMoveName(ItemIdToBattleMoveId(itemId)));
         PrependFontIdToFit(gStringVar2, end, FONT_NARROW, NUM_TECHNICAL_MACHINES >= 100 ? 60 : 65);
         if (GetItemTMHMIndex(itemId) > NUM_TECHNICAL_MACHINES)
@@ -1731,7 +1755,7 @@ static void OpenContextMenu(u8 taskId)
             }
         }
     }
-    if (gBagPosition.pocket == POCKET_TM_HM)
+    if (gBagPosition.pocket == POCKET_TM_HM && !IsItemAM(gSpecialVar_ItemId))
     {
         ClearWindowTilemap(WIN_DESCRIPTION);
         PrintTMHMMoveData(gSpecialVar_ItemId);
@@ -2961,8 +2985,8 @@ static s32 CompareItemsAlphabetically(enum Pocket pocketId, struct ItemSlot item
 
     if (pocketId == POCKET_TM_HM)
     {
-        name1 = GetMoveName(GetTMHMMoveId(GetItemTMHMIndex(item1.itemId)));
-        name2 = GetMoveName(GetTMHMMoveId(GetItemTMHMIndex(item2.itemId)));
+        name1 = GetTMPocketSortName(item1.itemId);
+        name2 = GetTMPocketSortName(item2.itemId);
     }
     else
     {
@@ -3023,8 +3047,8 @@ static s32 CompareItemsByIndex(enum Pocket pocketId, struct ItemSlot item1, stru
     switch (pocketId)
     {
     case POCKET_TM_HM:
-        index1 = GetItemTMHMIndex(item1.itemId);
-        index2 = GetItemTMHMIndex(item2.itemId);
+        index1 = GetTMPocketSortIndex(item1.itemId);
+        index2 = GetTMPocketSortIndex(item2.itemId);
         break;
     case POCKET_BERRIES: // To do - requires #7305
         index1 = item1.itemId;

@@ -3155,6 +3155,11 @@ static void DebugSelectionStep_UpdateItem(u8 taskId, u8 digits, u32 min, u32 max
         end = StringCopy(end, gText_Space);
         end = StringCopy(end, GetMoveName(moveId));
     }
+    else if (IsItemAM(itemId))
+    {
+        end = StringCopy(end, gText_Space);
+        end = StringCopy(end, gAbilitiesInfo[GetItemAMAbility(itemId)].name);
+    }
     else if (CheckIfItemIsTMHMOrEvolutionStone(itemId) == ITEM_IS_TM_HM)
     {
         end = StringCopy(end, COMPOUND_STRING(" None"));

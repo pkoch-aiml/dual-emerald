@@ -769,6 +769,7 @@ UNUSED static const struct BoxPokemon sBoxPokemonConstantsFit =
 
 STATIC_ASSERT(MAX_LEVEL <= 100, PokemonSubstruct0_experience_PotentiallyTooSmall); // Maximum of ~2 million exp.
 STATIC_ASSERT(ABILITIES_COUNT <= (1 << 9), PokemonSubstruct0_learnedAbility_TooSmall); // learnedAbilityLo:6 + learnedAbilityHi:3.
+STATIC_ASSERT(DE_MAX_LEARNABLE_ABILITIES <= 8, PokemonSubstruct1_abilityMemory_TooSmall); // abilityMemoryLo:5 + abilityMemoryHi:3, one bit per learnable-list entry.
 
 static u32 CompressStatus(u32 status)
 {
@@ -2433,6 +2434,12 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
                 retVal = substruct0->learnedAbilityLo | (substruct0->learnedAbilityHi << 6);
             }
             break;
+        case MON_DATA_ABILITY_MEMORY:
+            {
+                struct PokemonSubstruct1 *substruct1 = GetSubstruct1(boxMon);
+                retVal = substruct1->abilityMemoryLo | (substruct1->abilityMemoryHi << 5);
+            }
+            break;
         default:
             break;
         }
@@ -2872,6 +2879,32 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             SET16(learnedAbility);
             substruct0->learnedAbilityLo = learnedAbility;
             substruct0->learnedAbilityHi = learnedAbility >> 6;
+
+            // The ability memory records every pool entry the mon has held as its learned ability.
+            if (learnedAbility != ABILITY_NONE)
+            {
+                const u16 *learnable = GetSpeciesLearnableAbilities(substruct0->species);
+                for (u32 i = 0; learnable[i] != ABILITY_NONE && i < DE_MAX_LEARNABLE_ABILITIES; i++)
+                {
+                    if (learnable[i] == learnedAbility)
+                    {
+                        struct PokemonSubstruct1 *substruct1 = GetSubstruct1(boxMon);
+                        u32 memory = (substruct1->abilityMemoryLo | (substruct1->abilityMemoryHi << 5)) | (1u << i);
+                        substruct1->abilityMemoryLo = memory;
+                        substruct1->abilityMemoryHi = memory >> 5;
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+        case MON_DATA_ABILITY_MEMORY:
+        {
+            u8 memory;
+            struct PokemonSubstruct1 *substruct1 = GetSubstruct1(boxMon);
+            SET8(memory);
+            substruct1->abilityMemoryLo = memory;
+            substruct1->abilityMemoryHi = memory >> 5;
             break;
         }
         default:
@@ -3339,6 +3372,85 @@ enum Ability GetBattleLearnedAbility(enum Species species, enum Ability storedLe
 bool32 SpeciesLearnsAllAMs(enum Species species)
 {
     return gSpeciesInfo[SanitizeSpeciesId(species)].learnsAllAMs;
+}
+
+// Dual Emerald: whether the species can hold the ability as its learned ability: it's on the species'
+// learnable list, or the species learns every AM and the ability has one.
+bool32 CanSpeciesLearnAbility(enum Species species, enum Ability ability)
+{
+    const u16 *learnable = GetSpeciesLearnableAbilities(species);
+
+    if (ability == ABILITY_NONE)
+        return FALSE;
+    for (u32 i = 0; learnable[i] != ABILITY_NONE; i++)
+    {
+        if (learnable[i] == ability)
+            return TRUE;
+    }
+    return SpeciesLearnsAllAMs(species) && IsAMAbility(ability);
+}
+
+// Every teaching path (AMs, cross-training, tutors, the relearner) checks this.
+enum AbilityLearnResult CanMonLearnAbility(struct Pokemon *mon, enum Ability ability)
+{
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+
+    if (GetMonData(mon, MON_DATA_IS_EGG))
+        return ABILITY_LEARN_EGG;
+    if (ability != ABILITY_NONE && gAbilitiesInfo[ability].cantBeDoubled && GetMonAbility(mon) == ability)
+        return ABILITY_LEARN_CANT_BE_DOUBLED;
+    if (!CanSpeciesLearnAbility(species, ability))
+        return ABILITY_LEARN_INCOMPATIBLE;
+    if (GetMonData(mon, MON_DATA_LEARNED_ABILITY) == ability)
+        return ABILITY_LEARN_ALREADY_LEARNED;
+    return ABILITY_LEARN_OK;
+}
+
+static u32 AddAbilityIfNew(u16 *abilities, u32 count, enum Ability ability)
+{
+    for (u32 i = 0; i < count; i++)
+    {
+        if (abilities[i] == ability)
+            return count;
+    }
+    abilities[count] = ability;
+    return count + 1;
+}
+
+// The learned abilities the mon remembers (for the relearner), in learnable-list order. A learnsAllAMs
+// species remembers its whole list plus every AM ability. Returns how many; abilities needs room for
+// MAX_REMEMBERED_ABILITIES.
+u32 GetMonRememberedAbilities(struct BoxPokemon *boxMon, u16 *abilities)
+{
+    enum Species species = GetBoxMonData(boxMon, MON_DATA_SPECIES);
+    const u16 *learnable = GetSpeciesLearnableAbilities(species);
+    u32 memory = GetBoxMonData(boxMon, MON_DATA_ABILITY_MEMORY);
+    bool32 allAMs = SpeciesLearnsAllAMs(species);
+    u32 count = 0;
+
+    for (u32 i = 0; learnable[i] != ABILITY_NONE && i < DE_MAX_LEARNABLE_ABILITIES; i++)
+    {
+        if (allAMs || (memory & (1u << i)))
+            count = AddAbilityIfNew(abilities, count, learnable[i]);
+    }
+    if (allAMs)
+    {
+        for (u32 i = 0; i < NUM_ABILITY_MACHINES; i++)
+            count = AddAbilityIfNew(abilities, count, gAbilityMachineAbilities[i]);
+    }
+    return count;
+}
+
+// The abilities this mon can pass on by cross-training: everything it remembers plus its current
+// natural ability. Returns how many; abilities needs room for MAX_CROSS_TRAINABLE_ABILITIES.
+u32 GetMonCrossTrainableAbilities(struct BoxPokemon *boxMon, u16 *abilities)
+{
+    u32 count = GetMonRememberedAbilities(boxMon, abilities);
+    enum Ability natural = GetAbilityBySpecies(GetBoxMonData(boxMon, MON_DATA_SPECIES), GetBoxMonData(boxMon, MON_DATA_ABILITY_NUM));
+
+    if (natural != ABILITY_NONE)
+        count = AddAbilityIfNew(abilities, count, natural);
+    return count;
 }
 
 const u16 *GetSpeciesEggMoves(enum Species species)

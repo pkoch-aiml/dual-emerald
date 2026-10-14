@@ -266,6 +266,7 @@ static void DisplayPartyPokemonHPBarCheck(struct Pokemon *, struct PartyMenuBox 
 static void DisplayPartyPokemonDescriptionText(u8, struct PartyMenuBox *, u8);
 static bool8 IsMonAllowedInMinigame(u8);
 static void DisplayPartyPokemonDataToTeachMove(u8, enum Move);
+static void DisplayPartyPokemonDataToTeachAbility(u8, enum Ability);
 static enum CanMoveBeLearned CanTeachMove(struct Pokemon *, enum Move);
 static void DisplayPartyPokemonBarDetail(u8, const u8 *, u8, const u8 *);
 static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 color, const u8 *align, u32 width);
@@ -1179,6 +1180,9 @@ static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8 slot)
         case ITEM_IS_TM_HM: // TM/HM
             DisplayPartyPokemonDataToTeachMove(slot, ItemIdToBattleMoveId(item));
             break;
+        case ITEM_IS_AM: // Dual Emerald: Ability Machine
+            DisplayPartyPokemonDataToTeachAbility(slot, GetItemAMAbility(item));
+            break;
         case ITEM_IS_EVOLUTION_STONE: // Evolution stone
             if (!GetMonData(currentPokemon, MON_DATA_IS_EGG) && GetEvolutionTargetSpecies(currentPokemon, EVO_MODE_ITEM_CHECK, item, NULL, NULL, CHECK_EVO) != SPECIES_NONE)
                 return FALSE;
@@ -1187,6 +1191,24 @@ static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8 slot)
         }
     }
     return TRUE;
+}
+
+// Dual Emerald: ABLE / NOT ABLE / LEARNED for teaching a learned ability.
+static void DisplayPartyPokemonDataToTeachAbility(u8 slot, enum Ability ability)
+{
+    switch (CanMonLearnAbility(&gParties[B_TRAINER_PLAYER][slot], ability))
+    {
+    case ABILITY_LEARN_OK:
+        DisplayPartyPokemonDescriptionData(slot, PARTYBOX_DESC_ABLE_2);
+        break;
+    case ABILITY_LEARN_ALREADY_LEARNED:
+    case ABILITY_LEARN_CANT_BE_DOUBLED:
+        DisplayPartyPokemonDescriptionData(slot, PARTYBOX_DESC_LEARNED);
+        break;
+    default:
+        DisplayPartyPokemonDescriptionData(slot, PARTYBOX_DESC_NOT_ABLE_2);
+        break;
+    }
 }
 
 static void DisplayPartyPokemonDataToTeachMove(u8 slot, enum Move move)
@@ -5132,6 +5154,131 @@ void ItemUseCB_AbilityPatch(u8 taskId, TaskFunc task)
 #undef tSpecies
 #undef tAbilityNum
 #undef tMonId
+#undef tOldFunc
+
+// Dual Emerald: teaching a learned ability with an Ability Machine. AMs are reusable.
+#define tState      data[0]
+#define tMonId      data[1]
+#define tAbility    data[2]
+#define tOldFunc    4
+
+static const u8 sText_CantLearnAbility[] = _("{STR_VAR_1} can't learn\n{STR_VAR_2}.{PAUSE_UNTIL_PRESS}");
+static const u8 sText_AlreadyHasAbility[] = _("{STR_VAR_1} already has\n{STR_VAR_2}.{PAUSE_UNTIL_PRESS}");
+static const u8 sText_ReplaceLearnedAbility[] = _("{STR_VAR_1} wants to learn\n{STR_VAR_2} in place of\l{STR_VAR_3}. Is that OK?");
+static const u8 sText_LearnedAbility[] = _("{STR_VAR_1} learned\n{STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
+
+static void Task_TeachAbility(u8 taskId);
+
+// Starts teaching tAbility to the selected party mon. Shared by AMs and other teaching paths.
+static void StartTeachAbilityTask(u8 taskId, enum Ability ability)
+{
+    s16 *data = gTasks[taskId].data;
+
+    tState = 0;
+    tMonId = gPartyMenu.slotId;
+    tAbility = ability;
+    SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
+    gTasks[taskId].func = Task_TeachAbility;
+}
+
+void ItemUseCB_AM(u8 taskId, TaskFunc task)
+{
+    StartTeachAbilityTask(taskId, GetItemAMAbility(gSpecialVar_ItemId));
+}
+
+static void Task_TeachAbility(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][tMonId];
+    enum Ability oldAbility = GetMonData(mon, MON_DATA_LEARNED_ABILITY);
+
+    switch (tState)
+    {
+    case 0:
+        GetMonNickname(mon, gStringVar1);
+        StringCopy(gStringVar2, gAbilitiesInfo[tAbility].name);
+        PlaySE(SE_SELECT);
+        switch (CanMonLearnAbility(mon, tAbility))
+        {
+        case ABILITY_LEARN_OK:
+            break;
+        case ABILITY_LEARN_ALREADY_LEARNED:
+        case ABILITY_LEARN_CANT_BE_DOUBLED:
+            gPartyMenuUseExitCallback = FALSE;
+            StringExpandPlaceholders(gStringVar4, sText_AlreadyHasAbility);
+            DisplayPartyMenuMessage(gStringVar4, TRUE);
+            ScheduleBgCopyTilemapToVram(2);
+            gTasks[taskId].func = Task_ClosePartyMenuAfterText;
+            return;
+        default:
+            gPartyMenuUseExitCallback = FALSE;
+            StringExpandPlaceholders(gStringVar4, sText_CantLearnAbility);
+            DisplayPartyMenuMessage(gStringVar4, TRUE);
+            ScheduleBgCopyTilemapToVram(2);
+            gTasks[taskId].func = Task_ClosePartyMenuAfterText;
+            return;
+        }
+        gPartyMenuUseExitCallback = TRUE;
+        if (oldAbility == ABILITY_NONE)
+        {
+            tState = 3; // nothing to replace
+            return;
+        }
+        StringCopy(gStringVar3, gAbilitiesInfo[oldAbility].name);
+        StringExpandPlaceholders(gStringVar4, sText_ReplaceLearnedAbility);
+        DisplayPartyMenuMessage(gStringVar4, TRUE);
+        ScheduleBgCopyTilemapToVram(2);
+        tState++;
+        break;
+    case 1:
+        if (!IsPartyMenuTextPrinterActive())
+        {
+            PartyMenuDisplayYesNoMenu();
+            tState++;
+        }
+        break;
+    case 2:
+        switch (Menu_ProcessInputNoWrapClearOnChoose())
+        {
+        case 0:
+            tState++;
+            break;
+        case 1:
+        case MENU_B_PRESSED:
+            gPartyMenuUseExitCallback = FALSE;
+            PlaySE(SE_SELECT);
+            ScheduleBgCopyTilemapToVram(2);
+            // Don't exit the party screen; go back to choosing a mon.
+            ClearStdWindowAndFrameToTransparent(6, 0);
+            ClearWindowTilemap(6);
+            DisplayPartyMenuStdMessage(PARTY_MSG_TEACH_WHICH_MON);
+            gTasks[taskId].func = (void *)GetWordTaskArg(taskId, tOldFunc);
+            return;
+        }
+        break;
+    case 3:
+    {
+        u32 ability = tAbility;
+        SetMonData(mon, MON_DATA_LEARNED_ABILITY, &ability);
+        GetMonNickname(mon, gStringVar1);
+        StringCopy(gStringVar2, gAbilitiesInfo[tAbility].name);
+        StringExpandPlaceholders(gStringVar4, sText_LearnedAbility);
+        PlayFanfare(MUS_LEVEL_UP);
+        DisplayPartyMenuMessage(gStringVar4, TRUE);
+        ScheduleBgCopyTilemapToVram(2);
+        tState++;
+        break;
+    }
+    case 4:
+        if (!IsPartyMenuTextPrinterActive() && IsFanfareTaskInactive())
+            gTasks[taskId].func = Task_ClosePartyMenu;
+        break;
+    }
+}
+
+#undef tState
+#undef tMonId
+#undef tAbility
 #undef tOldFunc
 
 #define tState      data[0]

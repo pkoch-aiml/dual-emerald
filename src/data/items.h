@@ -13723,6 +13723,162 @@ const struct ItemInfo gItemsInfo[] =
         .fieldUseFunc = ItemUseOutOfBattle_TMHM,
     },
 
+// Dual Emerald: Ability Machines. Reusable; the ability each teaches is in gAbilityMachineAbilities.
+
+    [ITEM_AM01] =
+    {
+        .name = ITEM_NAME("AM01"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Lowers the Attack\n"
+            "of foes when the\n"
+            "Pokémon enters."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM02] =
+    {
+        .name = ITEM_NAME("AM02"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Powers up Bug-type\n"
+            "moves when the\n"
+            "user is in a pinch."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM03] =
+    {
+        .name = ITEM_NAME("AM03"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Lets the Pokémon\n"
+            "flee from any\n"
+            "wild battle."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM04] =
+    {
+        .name = ITEM_NAME("AM04"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "A stench that may\n"
+            "make the foe flinch\n"
+            "when hit."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM05] =
+    {
+        .name = ITEM_NAME("AM05"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Lights the area.\n"
+            "Keeps accuracy\n"
+            "from being lowered."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM06] =
+    {
+        .name = ITEM_NAME("AM06"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Checks the foe's\n"
+            "held item when the\n"
+            "Pokémon enters."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM07] =
+    {
+        .name = ITEM_NAME("AM07"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Can't be knocked\n"
+            "out in one hit\n"
+            "from full HP."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM08] =
+    {
+        .name = ITEM_NAME("AM08"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Passes through the\n"
+            "foe's barriers and\n"
+            "substitutes."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM09] =
+    {
+        .name = ITEM_NAME("AM09"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Ups Sp. Atk if an\n"
+            "ally has Plus or\n"
+            "Minus."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM10] =
+    {
+        .name = ITEM_NAME("AM10"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Ups Sp. Atk if an\n"
+            "ally has Plus or\n"
+            "Minus."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
+    [ITEM_AM11] =
+    {
+        .name = ITEM_NAME("AM11"),
+        .price = 3000,
+        .description = COMPOUND_STRING(
+            "Heals status\n"
+            "problems upon\n"
+            "switching out."),
+        .importance = 1,
+        .pocket = POCKET_TM_HM,
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_AM,
+    },
+
 // Charms
 
     [ITEM_OVAL_CHARM] =

@@ -126,6 +126,7 @@ enum MonData {
     MON_DATA_TERA_TYPE,
     MON_DATA_EVOLUTION_TRACKER,
     MON_DATA_LEARNED_ABILITY,
+    MON_DATA_ABILITY_MEMORY, // Dual Emerald: bit i set = the mon has held entry i of its learnable list as its learned ability.
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
@@ -153,9 +154,9 @@ struct PokemonSubstruct1
     enum Move move2:11; // 2047 moves.
     u16 evolutionTracker2:5;
     enum Move move3:11; // 2047 moves.
-    u16 unused_04:5;
+    u16 abilityMemoryLo:5; // Dual Emerald: low 5 bits of the ability memory. See MON_DATA_ABILITY_MEMORY.
     enum Move move4:11; // 2047 moves.
-    u16 unused_06:3;
+    u16 abilityMemoryHi:3; // Dual Emerald: high 3 bits of the ability memory.
     u16 hyperTrainedHP:1;
     u16 hyperTrainedAttack:1;
     u8 pp1:7; // 127 PP.
@@ -873,6 +874,24 @@ const u16 *GetSpeciesLearnableAbilities(enum Species species);
 enum Ability GetSpeciesFixedLearnedAbility(enum Species species);
 enum Ability GetBattleLearnedAbility(enum Species species, enum Ability storedLearnedAbility);
 bool32 SpeciesLearnsAllAMs(enum Species species);
+
+// Dual Emerald: teaching learned abilities (Milestone 4).
+#define MAX_REMEMBERED_ABILITIES (DE_MAX_LEARNABLE_ABILITIES + NUM_ABILITY_MACHINES)
+#define MAX_CROSS_TRAINABLE_ABILITIES (MAX_REMEMBERED_ABILITIES + 1)
+
+enum AbilityLearnResult
+{
+    ABILITY_LEARN_OK,
+    ABILITY_LEARN_INCOMPATIBLE,       // not on the species' list (and not an AM for a learnsAllAMs species)
+    ABILITY_LEARN_ALREADY_LEARNED,    // already the learned ability
+    ABILITY_LEARN_CANT_BE_DOUBLED,    // the natural ability is the same and has cantBeDoubled
+    ABILITY_LEARN_EGG,
+};
+
+bool32 CanSpeciesLearnAbility(enum Species species, enum Ability ability);
+enum AbilityLearnResult CanMonLearnAbility(struct Pokemon *mon, enum Ability ability);
+u32 GetMonRememberedAbilities(struct BoxPokemon *boxMon, u16 *abilities);
+u32 GetMonCrossTrainableAbilities(struct BoxPokemon *boxMon, u16 *abilities);
 const u16 *GetSpeciesEggMoves(enum Species species);
 bool32 SpeciesHasEggMove(enum Species species, enum Move move);
 const struct Evolution *GetSpeciesEvolutions(enum Species species);

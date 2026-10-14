@@ -22,6 +22,7 @@ void ItemUseOutOfBattle_PPUp(u8 taskId);
 void ItemUseOutOfBattle_RareCandy(u8 taskId);
 void ItemUseOutOfBattle_DynamaxCandy(u8 taskId);
 void ItemUseOutOfBattle_TMHM(u8 taskId);
+void ItemUseOutOfBattle_AM(u8 taskId);
 void ItemUseOutOfBattle_Repel(u8 taskId);
 void ItemUseOutOfBattle_Lure(u8 taskId);
 void ItemUseOutOfBattle_EscapeRope(u8 taskId);
@@ -66,6 +67,7 @@ enum ItemTMHMOrEvolutionStone
 {
     ITEM_IS_OTHER,
     ITEM_IS_TM_HM,
+    ITEM_IS_AM, // Dual Emerald: Ability Machine
     ITEM_IS_EVOLUTION_STONE,
 };
 

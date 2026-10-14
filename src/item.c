@@ -45,6 +45,32 @@ EWRAM_DATA struct BagPocket gBagPockets[POCKETS_COUNT] = {0};
 #define UNPACK_TM_ITEM_ID(_tm) [CAT(ENUM_TM_HM_, _tm) + 1] = { CAT(ITEM_TM_, _tm), CAT(MOVE_, _tm) },
 #define UNPACK_HM_ITEM_ID(_hm) [CAT(ENUM_TM_HM_, _hm) + 1] = { CAT(ITEM_HM_, _hm), CAT(MOVE_, _hm) },
 
+// Dual Emerald: the ability each AM teaches, in AM order. The real list is set in Milestone 6.
+const u16 gAbilityMachineAbilities[NUM_ABILITY_MACHINES] =
+{
+    [ITEM_AM01 - ITEM_AM01] = ABILITY_INTIMIDATE,
+    [ITEM_AM02 - ITEM_AM01] = ABILITY_SWARM,
+    [ITEM_AM03 - ITEM_AM01] = ABILITY_RUN_AWAY,
+    [ITEM_AM04 - ITEM_AM01] = ABILITY_STENCH,
+    [ITEM_AM05 - ITEM_AM01] = ABILITY_ILLUMINATE,
+    [ITEM_AM06 - ITEM_AM01] = ABILITY_FRISK,
+    [ITEM_AM07 - ITEM_AM01] = ABILITY_STURDY,
+    [ITEM_AM08 - ITEM_AM01] = ABILITY_INFILTRATOR,
+    [ITEM_AM09 - ITEM_AM01] = ABILITY_PLUS,
+    [ITEM_AM10 - ITEM_AM01] = ABILITY_MINUS,
+    [ITEM_AM11 - ITEM_AM01] = ABILITY_NATURAL_CURE,
+};
+
+bool32 IsAMAbility(enum Ability ability)
+{
+    for (u32 i = 0; i < NUM_ABILITY_MACHINES; i++)
+    {
+        if (gAbilityMachineAbilities[i] == ability)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 const struct TmHmIndexKey gTMHMItemMoveIds[NUM_ALL_MACHINES + 1] =
 {
     [0] = { ITEM_NONE, MOVE_NONE }, // Failsafe

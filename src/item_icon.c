@@ -160,6 +160,8 @@ const void *GetItemIconPic(enum Item itemId)
         return gItemIcon_ReturnToFieldArrow; // Use last icon, the "return to field" arrow
     if (itemId >= ITEMS_COUNT)
         return gItemsInfo[0].iconPic;
+    if (IsItemAM(itemId))
+        return gItemIcon_AbilityCapsule; // Dual Emerald: placeholder AM icon
     if (gItemsInfo[itemId].pocket == POCKET_TM_HM)
     {
         if (GetItemTMHMIndex(itemId) > NUM_TECHNICAL_MACHINES)
@@ -176,6 +178,8 @@ const u16 *GetItemIconPalette(enum Item itemId)
         return gItemIconPalette_ReturnToFieldArrow;
     if (itemId >= ITEMS_COUNT)
         return gItemsInfo[0].iconPalette;
+    if (IsItemAM(itemId))
+        return gItemIconPalette_AbilityCapsule; // Dual Emerald: placeholder AM icon
     if (gItemsInfo[itemId].pocket == POCKET_TM_HM)
         return gTypesInfo[GetMoveType(GetItemTMHMMoveId(itemId))].paletteTMHM;
 
