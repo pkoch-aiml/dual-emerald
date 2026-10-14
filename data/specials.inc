@@ -494,6 +494,7 @@ gSpecials::
 	def_special CloseBattleFrontierTutorWindow
 	def_special ScrollableMultichoice_RedrawPersistentMenu
 	def_special ChooseMonForMoveTutor, waitstate=1
+	def_special ChooseMonForAbilityTutor, waitstate=1
 	def_special ScrollableMultichoice_ClosePersistentMenu
 	def_special DoDeoxysRockInteraction, waitstate=1
 	def_special SetDeoxysRockPalette

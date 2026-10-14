@@ -550,6 +550,7 @@ struct PokemonTemplate
     u16 teraType;
     u16 dmaxLevel;
     bool16 isEgg;
+    u16 learnedAbility; // Dual Emerald: ABILITY_NONE for none
     enum GeneratedMonOrigin origin;
     u8 ignoreTotalEvCheck:1;
     u8 doNotUseDefaultShinyness:1;

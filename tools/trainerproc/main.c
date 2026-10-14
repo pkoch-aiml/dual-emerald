@@ -69,6 +69,9 @@ struct Pokemon
     struct String ability;
     int ability_line;
 
+    struct String learned_ability; // Dual Emerald
+    int learned_ability_line;
+
     int level;
     int level_line;
 
@@ -1450,6 +1453,13 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
                 pokemon->ability_line = value.location.line;
                 pokemon->ability = token_string(&value);
             }
+            else if (is_literal_token(&key, "Learned Ability")) // Dual Emerald
+            {
+                if (pokemon->learned_ability_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'Learned Ability'");
+                pokemon->learned_ability_line = value.location.line;
+                pokemon->learned_ability = token_string(&value);
+            }
             else if (is_literal_token(&key, "Level"))
             {
                 if (pokemon->level_line)
@@ -2057,6 +2067,14 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
                 fprintf(f, "#line %d\n", pokemon->ability_line);
                 fprintf(f, "            .ability = ");
                 fprint_constant(f, "ABILITY", pokemon->ability);
+                fprintf(f, ",\n");
+            }
+
+            if (pokemon->learned_ability_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->learned_ability_line);
+                fprintf(f, "            .learnedAbility = ");
+                fprint_constant(f, "ABILITY", pokemon->learned_ability);
                 fprintf(f, ",\n");
             }
 

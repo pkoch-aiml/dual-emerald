@@ -379,6 +379,7 @@ extern const u8 Debug_EventScript_SetHiddenNature[];
 extern const u8 Debug_EventScript_SetAbility[];
 extern const u8 Debug_EventScript_SetLearnedAbility[];
 extern const u8 Debug_EventScript_SetAnyLearnedAbility[];
+extern const u8 Debug_EventScript_RelearnAbility[];
 extern const u8 Debug_EventScript_SetFriendship[];
 extern const u8 Debug_EventScript_Script_1[];
 extern const u8 Debug_EventScript_Script_2[];
@@ -638,6 +639,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_EditPokemon[] =
     { COMPOUND_STRING("Set Ability"),        DebugAction_ExecuteScript, Debug_EventScript_SetAbility },
     { COMPOUND_STRING("Set Learned Ability"), DebugAction_ExecuteScript, Debug_EventScript_SetLearnedAbility },
     { COMPOUND_STRING("Set Learned (Any)"),  DebugAction_ExecuteScript, Debug_EventScript_SetAnyLearnedAbility },
+    { COMPOUND_STRING("Ability Relearner"),  DebugAction_ExecuteScript, Debug_EventScript_RelearnAbility },
     { NULL }
 };
 

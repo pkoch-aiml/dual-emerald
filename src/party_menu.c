@@ -267,6 +267,7 @@ static void DisplayPartyPokemonDescriptionText(u8, struct PartyMenuBox *, u8);
 static bool8 IsMonAllowedInMinigame(u8);
 static void DisplayPartyPokemonDataToTeachMove(u8, enum Move);
 static void DisplayPartyPokemonDataToTeachAbility(u8, enum Ability);
+static void StartTeachAbilityTask(u8 taskId, enum Ability ability);
 static enum CanMoveBeLearned CanTeachMove(struct Pokemon *, enum Move);
 static void DisplayPartyPokemonBarDetail(u8, const u8 *, u8, const u8 *);
 static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 color, const u8 *align, u32 width);
@@ -1168,6 +1169,11 @@ static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8 slot)
         gSpecialVar_Result = FALSE;
         DisplayPartyPokemonDataToTeachMove(slot, gSpecialVar_0x8005);
     }
+    else if (gPartyMenu.action == PARTY_ACTION_ABILITY_TUTOR)
+    {
+        gSpecialVar_Result = FALSE;
+        DisplayPartyPokemonDataToTeachAbility(slot, gSpecialVar_0x8005);
+    }
     else
     {
         if (gPartyMenu.action != PARTY_ACTION_USE_ITEM)
@@ -1574,6 +1580,13 @@ static void HandleChooseMonSelection(u8 taskId, s8 *slotPtr)
                 PlaySE(SE_SELECT);
                 PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[1]);
                 TryTutorSelectedMon(taskId);
+            }
+            break;
+        case PARTY_ACTION_ABILITY_TUTOR:
+            if (IsSelectedMonNotEgg((u8 *)slotPtr))
+            {
+                PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[1]);
+                StartTeachAbilityTask(taskId, gSpecialVar_0x8005);
             }
             break;
         case PARTY_ACTION_GIVE_MAILBOX_MAIL:
@@ -5260,6 +5273,7 @@ static void Task_TeachAbility(u8 taskId)
     {
         u32 ability = tAbility;
         SetMonData(mon, MON_DATA_LEARNED_ABILITY, &ability);
+        gSpecialVar_Result = TRUE;
         GetMonNickname(mon, gStringVar1);
         StringCopy(gStringVar2, gAbilitiesInfo[tAbility].name);
         StringExpandPlaceholders(gStringVar4, sText_LearnedAbility);
@@ -7619,6 +7633,14 @@ void ChooseMonForTradingBoard(enum PartyMenuType menuType, MainCallback callback
 void ChooseMonForMoveTutor(void)
 {
     InitPartyMenu(PARTY_MENU_TYPE_FIELD, PARTY_LAYOUT_SINGLE, PARTY_ACTION_MOVE_TUTOR, FALSE, PARTY_MSG_TEACH_WHICH_MON, Task_HandleChooseMonInput, CB2_ReturnToFieldContinueScriptPlayMapMusic);
+}
+
+// Dual Emerald: teaches the ability in VAR_0x8005 to a chosen party mon. VAR_RESULT is TRUE if it learned
+// it. Used by cross-training, ability tutors and the relearner.
+void ChooseMonForAbilityTutor(void)
+{
+    gSpecialVar_Result = FALSE;
+    InitPartyMenu(PARTY_MENU_TYPE_FIELD, PARTY_LAYOUT_SINGLE, PARTY_ACTION_ABILITY_TUTOR, FALSE, PARTY_MSG_TEACH_WHICH_MON, Task_HandleChooseMonInput, CB2_ReturnToFieldContinueScriptPlayMapMusic);
 }
 
 void ChooseMonForWirelessMinigame(void)

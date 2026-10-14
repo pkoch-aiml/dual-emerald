@@ -500,6 +500,17 @@ Debug_EventScript_SetLearnedAbilityClose:
 	releaseall
 	end
 
+Debug_EventScript_RelearnAbility::
+	lockall
+	getpartysize
+	goto_if_eq VAR_RESULT, 0, Debug_NoPokemon
+	special ChoosePartyMon
+	goto_if_ge VAR_0x8004, PARTY_SIZE, Debug_EventScript_RelearnAbilityClose
+	call Common_EventScript_AbilityRelearner
+Debug_EventScript_RelearnAbilityClose:
+	releaseall
+	end
+
 Debug_EventScript_SetAnyLearnedAbility::
 	special ChoosePartyMon
 	callnative DebugNative_Party_SetAnyLearnedAbility

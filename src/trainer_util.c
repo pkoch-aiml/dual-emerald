@@ -158,6 +158,13 @@ void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *tra
         abilitySet = SetCorrectAbilityNum(mon, trainerMon->species, trainerMon->ability);
     }
 
+    // Dual Emerald: the trainer's "Learned Ability:", not checked against the species' list.
+    if (trainerMon->learnedAbility != ABILITY_NONE)
+    {
+        u32 learnedAbility = trainerMon->learnedAbility;
+        SetMonData(mon, MON_DATA_LEARNED_ABILITY, &learnedAbility);
+    }
+
     if (!abilitySet)
     {
         if (B_TRAINER_MON_RANDOM_ABILITY == 2)

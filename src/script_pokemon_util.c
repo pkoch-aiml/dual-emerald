@@ -451,6 +451,7 @@ void ScrCmd_createmon(struct ScriptContext *ctx)
     }
     monTemplate.dmaxLevel    = PARSE_FLAG(24, 0);
     monTemplate.isEgg        = PARSE_FLAG(25, FALSE);
+    monTemplate.learnedAbility = PARSE_FLAG(27, ABILITY_NONE); // Dual Emerald
     if (side == B_SIDE_PLAYER)
     {
         Script_RequestEffects(SCREFF_V1 | SCREFF_SAVE);
@@ -462,7 +463,7 @@ void ScrCmd_createmon(struct ScriptContext *ctx)
         monTemplate.origin = STATIC_WILDMON_ORIGIN;
     }
 
-    monTemplate.ignoreTotalEvCheck = flags >> 26;
+    monTemplate.ignoreTotalEvCheck = (flags >> 26) & 1;
 
     gSpecialVar_Result = ScriptGiveMonParameterized(side, slot, &monTemplate);
 }

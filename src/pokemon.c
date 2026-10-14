@@ -7100,6 +7100,13 @@ void CreateMonFromTemplate(struct Pokemon *mon, const struct PokemonTemplate *mo
         SetMonData(mon, MON_DATA_ABILITY_NUM, &abilityNum);
     }
 
+    // Dual Emerald: scripted learned abilities aren't checked against the species' list.
+    if (monTemplate->learnedAbility != ABILITY_NONE && monTemplate->learnedAbility < ABILITIES_COUNT)
+    {
+        u32 learnedAbility = monTemplate->learnedAbility;
+        SetMonData(mon, MON_DATA_LEARNED_ABILITY, &learnedAbility);
+    }
+
     u8 ivs[NUM_STATS];
     u8 evs[NUM_STATS];
     ResolveIVs(species, monTemplate->ivs, ivs);

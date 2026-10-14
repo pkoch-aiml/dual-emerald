@@ -510,3 +510,93 @@ TEST("Changing the natural ability changes the cross-trainable set")
     EXPECT_EQ(GetMonCrossTrainableAbilities(&mon.box, abilities), 1);
     EXPECT_EQ(abilities[0], GetSpeciesAbility(SPECIES_WOBBUFFET, 2));
 }
+
+void Native_SetChosenCrossTrainAbility(void);
+void Native_SetChosenRememberedAbility(void);
+
+TEST("Cross-training and relearner choices map back to the right abilities")
+{
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    u32 i, learned = ABILITY_NONE;
+
+    ZeroPlayerPartyMons();
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_WOBBUFFET, 50, 0, OTID_STRUCT_PLAYER_ID);
+    // A learnable ability that isn't also the natural one, so the two show up separately.
+    for (i = 0; learnable[i] != ABILITY_NONE && learned == ABILITY_NONE; i++)
+    {
+        if (learnable[i] != GetMonAbility(&gParties[B_TRAINER_PLAYER][0]))
+            learned = learnable[i];
+    }
+    ASSUME(learned != ABILITY_NONE);
+    SetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY, &learned);
+    gSpecialVar_0x8004 = 0;
+
+    // Cross-trainable: the remembered learned ability, then the natural ability.
+    gSpecialVar_Result = 1;
+    Native_SetChosenCrossTrainAbility();
+    EXPECT_EQ(gSpecialVar_0x8005, learned);
+    gSpecialVar_Result = 2;
+    Native_SetChosenCrossTrainAbility();
+    EXPECT_EQ(gSpecialVar_0x8005, GetMonAbility(&gParties[B_TRAINER_PLAYER][0]));
+    gSpecialVar_Result = 3; // out of range
+    Native_SetChosenCrossTrainAbility();
+    EXPECT_EQ(gSpecialVar_0x8005, ABILITY_NONE);
+
+    // Remembered: only the learned ability.
+    gSpecialVar_Result = 1;
+    Native_SetChosenRememberedAbility();
+    EXPECT_EQ(gSpecialVar_0x8005, learned);
+    gSpecialVar_Result = 2;
+    Native_SetChosenRememberedAbility();
+    EXPECT_EQ(gSpecialVar_0x8005, ABILITY_NONE);
+}
+
+void Native_RelearnChosenAbility(void);
+
+TEST("The relearner restores a remembered ability, and refuses the current one")
+{
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    u32 first, second;
+    ASSUME(learnable[0] != ABILITY_NONE && learnable[1] != ABILITY_NONE);
+    first = learnable[0];
+    second = learnable[1];
+
+    ZeroPlayerPartyMons();
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_WOBBUFFET, 50, 0, OTID_STRUCT_PLAYER_ID);
+    SetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY, &first);
+    SetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY, &second);
+    gSpecialVar_0x8004 = 0;
+
+    gSpecialVar_0x8005 = first;
+    Native_RelearnChosenAbility();
+    EXPECT_EQ(gSpecialVar_Result, 0);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY), first);
+
+    Native_RelearnChosenAbility();
+    EXPECT_EQ(gSpecialVar_Result, 1); // already has it
+}
+
+TEST("givemon and createmon can set a learned ability, which is remembered if it's on the list")
+{
+    const u16 *learnable = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    ASSUME(learnable[0] != ABILITY_NONE);
+
+    ZeroPlayerPartyMons();
+    ZeroEnemyPartyMons();
+    gSpecialVar_0x8000 = learnable[0];
+    RUN_OVERWORLD_SCRIPT(
+        givemon SPECIES_WOBBUFFET, 5;
+        givemon SPECIES_WOBBUFFET, 5, learnedAbility=ABILITY_STANCE_CHANGE;
+        createmon 0, 2, SPECIES_WOBBUFFET, 5, learnedAbility=VAR_0x8000;
+        createmon 1, 0, SPECIES_WOBBUFFET, 5, learnedAbility=ABILITY_INTIMIDATE;
+    );
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY), ABILITY_NONE);
+    // Scripted learned abilities aren't checked against the species' list, and aren't remembered if
+    // they aren't on it.
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_LEARNED_ABILITY), ABILITY_STANCE_CHANGE);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_ABILITY_MEMORY), 0);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][2], MON_DATA_LEARNED_ABILITY), learnable[0]);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][2], MON_DATA_ABILITY_MEMORY), 1u << 0);
+    // A scripted wild Pokémon (createmon on the opponent's side, then dowildbattle).
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_OPPONENT_A][0], MON_DATA_LEARNED_ABILITY), ABILITY_INTIMIDATE);
+}

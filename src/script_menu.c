@@ -730,6 +730,8 @@ bool16 ScriptMenu_CreatePCMultichoice(void)
     }
 }
 
+static const u8 sText_CrossTrain[] = _("Cross-Train");
+
 static void CreatePCMultichoice(void)
 {
     u8 x = 8;
@@ -748,24 +750,29 @@ static void CreatePCMultichoice(void)
     {
         pixelWidth = DisplayTextAndGetWidth(gText_HallOfFame, pixelWidth);
     }
+    pixelWidth = DisplayTextAndGetWidth(sText_CrossTrain, pixelWidth);
 
     width = ConvertPixelWidthToTileWidth(pixelWidth);
 
+    // Dual Emerald: "Cross-Train" is the third option; the rest move down a row.
     // Include Hall of Fame option if player is champion
     if (FlagGet(FLAG_SYS_GAME_CLEAR))
     {
-        numChoices = 4;
-        windowId = CreateWindowFromRect(0, 0, width, 8);
+        numChoices = 5;
+        windowId = CreateWindowFromRect(0, 0, width, 10);
         SetStandardWindowBorderStyle(windowId, FALSE);
-        AddTextPrinterParameterized(windowId, FONT_NORMAL, gText_HallOfFame, x, 33, TEXT_SKIP_DRAW, NULL);
-        AddTextPrinterParameterized(windowId, FONT_NORMAL, gText_LogOff, x, 49, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(windowId, FONT_NORMAL, sText_CrossTrain, x, 33, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(windowId, FONT_NORMAL, gText_HallOfFame, x, 49, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(windowId, FONT_NORMAL, gText_LogOff, x, 65, TEXT_SKIP_DRAW, NULL);
     }
     else
     {
-        numChoices = 3;
-        windowId = CreateWindowFromRect(0, 0, width, 6);
+        // The script treats choice 3 as Hall of Fame, which turns the PC off before the game is cleared.
+        numChoices = 4;
+        windowId = CreateWindowFromRect(0, 0, width, 8);
         SetStandardWindowBorderStyle(windowId, FALSE);
-        AddTextPrinterParameterized(windowId, FONT_NORMAL, gText_LogOff, x, 33, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(windowId, FONT_NORMAL, sText_CrossTrain, x, 33, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(windowId, FONT_NORMAL, gText_LogOff, x, 49, TEXT_SKIP_DRAW, NULL);
     }
 
     // Change PC name if player has met Lanette

@@ -268,7 +268,7 @@ There's one test file for each rule in the design doc:
 - **Truant twice:** both copies share one "loafed last turn" state, so it acts exactly like a single Truant.
 - **Illusion:** no new work. It already has `cantBeCopied`, `cantBeSwapped` and `cantBeTraced`, so copy effects fail, and it's on no learnable list. Add one test confirming that Role Play/Receiver can't move it into a slot.
 
-## Milestone 4: Getting learned abilities
+## Milestone 4: Getting learned abilities ✅ Complete (pending in-game check)
 
 **Decisions** (user, 2026-10-14):
 - AMs are reusable, like the expansion's modern TMs.
@@ -285,9 +285,20 @@ There's one test file for each rule in the design doc:
   - **Teaching:** "Booted up an AM… Teach X to a Pokémon?", then the party menu shows ABLE / NOT ABLE / LEARNED. If the target already has a learned ability, it asks before replacing it. `StartTeachAbilityTask` (`party_menu.c`) is shared with the later teaching paths.
   - **Helpers (`pokemon.c`):** `CanSpeciesLearnAbility` (on the list, or `learnsAllAMs` and an AM ability). `CanMonLearnAbility` is what every teaching path calls; it rejects eggs, incompatible abilities, the current learned ability, and a `cantBeDoubled` ability that's already the natural one. `GetMonRememberedAbilities` and `GetMonCrossTrainableAbilities` provide the remembered and cross-trainable sets.
   - Tests in `test/learned_ability.c` (8).
-- 4.3 Cross-training from the PC.
-- 4.4 Ability Relearner (debug menu) and a tutor script special.
-- 4.5 Scripted learned abilities (`givemon`, wild battles, `trainerproc`).
+- 4.3 ✅ Cross-training from the PC.
+  - The Pokémon Center PC menu has a "Cross-Train" option (third, before Hall of Fame/Log Off; `CreatePCMultichoice` and `EventScript_AccessPC`).
+  - Flow: choose a party source, choose one of its cross-trainable abilities (`Native_PushCrossTrainableAbilities` and a dynamic multichoice), then choose a party target. The source isn't changed.
+  - Teaching goes through the new `ChooseMonForAbilityTutor` special: `PARTY_ACTION_ABILITY_TUTOR` takes the ability in `VAR_0x8005`, shows ABLE / NOT ABLE / LEARNED, runs the shared teaching task, and sets `VAR_RESULT` to TRUE if a Pokémon learned the ability.
+  - Natives live in `src/ability_teaching.c`.
+- 4.4 ✅ Ability Relearner and tutors.
+  - `Common_EventScript_AbilityRelearner` (`data/scripts/ability_teaching.inc`) lists the chosen mon's remembered abilities and restores the chosen one, refusing the current one. The debug menu's "Ability Relearner" entry calls it; Milestone 6's NPC can too.
+  - Tutors need no new code: set `VAR_0x8005`, handle payment, and `special ChooseMonForAbilityTutor` (documented in that file).
+- 4.5 ✅ Scripted learned abilities.
+  - `givemon`/`createmon` take `learnedAbility=` (flag bit 27; this also fixed `ignoreTotalEvCheck` reading every bit above 26). A scripted wild encounter uses `createmon 1, 0, …, learnedAbility=…` then `dowildbattle`.
+  - Trainer parties take `Learned Ability:` (trainerproc → `TrainerMon.learnedAbility`).
+  - Scripted learned abilities aren't checked against the species' list; they're remembered only if they're on it.
+- Every player-facing teaching path (AMs, cross-training, tutors, relearner) goes through `CanMonLearnAbility`, so `cantBeDoubled` is enforced; scripted and trainer abilities deliberately skip it.
+- Tests: `test/learned_ability.c` (30 in all), plus a `Learned Ability:` case in `test/battle/trainer_control.c`.
 
 1. **Ability memory:** fill 8 spare bits with a bitmask of the pool entries the mon has ever held **as its learned ability**. Natural abilities are never recorded. The right-superset rule means evolution needs no remapping.
 2. **AM table:** a constant table mapping each AM item to its ability, which code can loop over. Compatibility checks, and the remembered set for `learnsAllAMs` species, both read from it.

@@ -33,6 +33,10 @@ TEST("CreateNPCTrainerPartyForTrainer generates customized Pokémon")
     EXPECT(GetMonAbility(&testParty[1]) == ABILITY_SHADOW_TAG);
     EXPECT(GetMonAbility(&testParty[2]) == ABILITY_SHADOW_TAG);
 
+    // Dual Emerald: "Learned Ability:"
+    EXPECT(GetMonData(&testParty[0], MON_DATA_LEARNED_ABILITY) == ABILITY_INTIMIDATE);
+    EXPECT(GetMonData(&testParty[1], MON_DATA_LEARNED_ABILITY) == ABILITY_NONE);
+
     EXPECT(GetMonData(&testParty[0], MON_DATA_FRIENDSHIP, 0) == 42);
     EXPECT(GetMonData(&testParty[1], MON_DATA_FRIENDSHIP, 0) == 0);
 

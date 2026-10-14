@@ -71,6 +71,7 @@ struct TrainerMon
     enum Species species;
     enum Item heldItem;
     enum Ability ability;
+    enum Ability learnedAbility; // Dual Emerald
     u8 lvl;
     enum PokeBall ball:8;
     u8 friendship;

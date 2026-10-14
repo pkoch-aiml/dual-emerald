@@ -18,10 +18,47 @@ EventScript_AccessPC::
 	switch VAR_RESULT
 	case 0, EventScript_AccessPokemonStorage
 	case 1, EventScript_AccessPlayersPC
-	case 2, EventScript_AccessHallOfFame
-	case 3, EventScript_TurnOffPC
+	case 2, EventScript_AccessCrossTraining
+	case 3, EventScript_AccessHallOfFame
+	case 4, EventScript_TurnOffPC
 	case MULTI_B_PRESSED, EventScript_TurnOffPC
 	end
+
+@ Dual Emerald: cross-training. A party Pokémon passes on one of its remembered learned abilities, or its
+@ natural ability, to a compatible party Pokémon. The source isn't changed.
+EventScript_AccessCrossTraining::
+	playse SE_PC_LOGIN
+	msgbox Text_CrossTrainChooseSource, MSGBOX_DEFAULT
+	special ChoosePartyMon
+	goto_if_ge VAR_0x8004, PARTY_SIZE, EventScript_PCMainMenu
+	callnative Native_PushCrossTrainableAbilities
+	goto_if_eq VAR_RESULT, 0, EventScript_CrossTrainNothingToPass
+	message Text_CrossTrainChooseAbility
+	waitmessage
+	dynmultistack 0, 0, FALSE, 6, FALSE, 0, DYN_MULTICHOICE_CB_NONE
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, EventScript_PCMainMenu
+	callnative Native_SetChosenCrossTrainAbility
+	msgbox Text_CrossTrainChooseTarget, MSGBOX_DEFAULT
+	special ChooseMonForAbilityTutor
+	goto EventScript_PCMainMenu
+	end
+
+EventScript_CrossTrainNothingToPass::
+	msgbox Text_CrossTrainNothingToPass, MSGBOX_DEFAULT
+	goto EventScript_PCMainMenu
+	end
+
+Text_CrossTrainChooseSource:
+	.string "Choose a POKéMON to cross-train from.$"
+
+Text_CrossTrainChooseAbility:
+	.string "Which Ability should it pass on?$"
+
+Text_CrossTrainChooseTarget:
+	.string "Choose a POKéMON to learn\n{STR_VAR_1}.$"
+
+Text_CrossTrainNothingToPass:
+	.string "That POKéMON has no Ability\nto pass on.$"
 
 EventScript_AccessPlayersPC::
 	playse SE_PC_LOGIN
