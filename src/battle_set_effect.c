@@ -382,7 +382,7 @@ static void HandleSetEffectFlameBurst(struct BattleCalcValues *cv, struct SetEff
 
     if (IsBattlerAlive(partner)
      && !IsSemiInvulnerable(partner, CHECK_ALL)
-     && GetBattlerAbility(partner) != ABILITY_MAGIC_GUARD)
+     && !BattlerHasAbility(partner, ABILITY_MAGIC_GUARD))
     {
         gEffectBattler = partner;
         SetPassiveDamageAmount(partner, gBattleMons[partner].maxHP / 16);

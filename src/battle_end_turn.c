@@ -502,7 +502,7 @@ static bool32 HandleEndTurnLeechSeed(enum BattlerId battler)
         s32 drainAmount = GetNonDynamaxMaxHP(drainedBattler) / 8;
         s32 healAmount = GetDrainedBigRootHp(receiverBattler, drainAmount);
 
-        if (GetBattlerAbility(drainedBattler) == ABILITY_LIQUID_OOZE)
+        if (BattlerHasAbility(drainedBattler, ABILITY_LIQUID_OOZE))
         {
             SetPassiveDamageAmount(drainedBattler, drainAmount);
             SetPassiveDamageAmount(receiverBattler, healAmount);
@@ -1286,7 +1286,7 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
                 if (GetConfig(B_UPROAR) >= GEN_5) // This effect is only present in pre-Gen 5 Uproar
                     break;
 
-                bool32 hasSoundproof = GetConfig(B_UPROAR_IGNORE_SOUNDPROOF) < GEN_5 && GetBattlerAbility(gEffectBattler) == ABILITY_SOUNDPROOF;
+                bool32 hasSoundproof = GetConfig(B_UPROAR_IGNORE_SOUNDPROOF) < GEN_5 && BattlerHasAbility(gEffectBattler, ABILITY_SOUNDPROOF);
 
                 if ((gBattleMons[gEffectBattler].status1 & STATUS1_SLEEP)
                  && !hasSoundproof)

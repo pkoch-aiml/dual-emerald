@@ -672,7 +672,7 @@ bool32 TryRunFromBattle(enum BattlerId battler)
     {
         effect = TRUE;
     }
-    else if (GetBattlerAbility(battler) == ABILITY_RUN_AWAY)
+    else if (BattlerHasAbility(battler, ABILITY_RUN_AWAY))
     {
         if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE)
         {
@@ -781,7 +781,7 @@ void HandleAction_Run(void)
         else
         {
             if (GetBattlerHoldEffect(gBattlerAttacker) != HOLD_EFFECT_CAN_ALWAYS_RUN
-             && GetBattlerAbility(gBattlerAttacker) != ABILITY_RUN_AWAY
+             && !BattlerHasAbility(gBattlerAttacker, ABILITY_RUN_AWAY)
              && !CanBattlerEscape(gBattlerAttacker))
             {
                 gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_ATTACKER_CANT_ESCAPE;
@@ -1574,7 +1574,7 @@ u32 TrySetCantSelectMoveBattleScript(enum BattlerId battler)
         if (SetCantSelectScript(battler, gCurrentMove, BattleScript_SelectingNotAllowedMoveAssaultVestInPalace, BattleScript_SelectingNotAllowedMoveAssaultVest))
             limitations++;
     }
-    if (dynamaxBypassCheck && (GetBattlerAbility(battler) == ABILITY_GORILLA_TACTICS) && *choicedMove != MOVE_NONE
+    if (dynamaxBypassCheck && (BattlerHasAbility(battler, ABILITY_GORILLA_TACTICS)) && *choicedMove != MOVE_NONE
               && *choicedMove != MOVE_UNAVAILABLE && *choicedMove != move)
     {
         gCurrentMove = *choicedMove;
@@ -1676,7 +1676,7 @@ u32 CheckMoveLimitations(enum BattlerId battler, u8 unusableMoves, u32 check)
         else if (check & MOVE_LIMITATION_STUFF_CHEEKS && moveEffect == EFFECT_STUFF_CHEEKS && GetItemPocket(gBattleMons[battler].item) != POCKET_BERRIES && GetConfig(B_STUFF_CHEEKS_SELECTABLE) < GEN_CHAMPIONS)
             unusableMoves |= 1u << i;
         // Gorilla Tactics
-        else if (check & MOVE_LIMITATION_CHOICE_ITEM && GetBattlerAbility(battler) == ABILITY_GORILLA_TACTICS && *choicedMove != MOVE_NONE && *choicedMove != MOVE_UNAVAILABLE && *choicedMove != move)
+        else if (check & MOVE_LIMITATION_CHOICE_ITEM && BattlerHasAbility(battler, ABILITY_GORILLA_TACTICS) && *choicedMove != MOVE_NONE && *choicedMove != MOVE_UNAVAILABLE && *choicedMove != move)
             unusableMoves |= 1u << i;
         // Can't Use Twice flag
         else if (check & MOVE_LIMITATION_CANT_USE_TWICE && MoveCantBeUsedTwice(move) && move == gLastResultingMoves[battler])
@@ -1811,7 +1811,7 @@ s32 GetDrainedBigRootHp(enum BattlerId battler, s32 hp)
 // Should always be the last check. Otherwise the ability might be wrongly recorded.
 bool32 IsAbilityAndRecord(enum BattlerId battler, enum Ability battlerAbility, enum Ability abilityToCheck)
 {
-    if (battlerAbility != abilityToCheck)
+    if (!AbilityOrLearned(battler, battlerAbility, abilityToCheck))
         return FALSE;
 
     RecordAbilityBattle(battler, abilityToCheck);
@@ -4530,7 +4530,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                     if (!(magicianTargets & 1u << targetBattler))
                         continue;
 
-                    if (GetBattlerAbility(targetBattler) == ABILITY_STICKY_HOLD)
+                    if (BattlerHasAbility(targetBattler, ABILITY_STICKY_HOLD))
                     {
                         effect = FALSE;
                         break;
@@ -5022,6 +5022,18 @@ enum Ability GetBattlerPopupAbility(enum BattlerId battler)
      && gLastUsedAbility != gBattleMons[battler].ability)
         return learnedAbility;
     return gBattleMons[battler].ability;
+}
+
+// For code that receives a battler's ability as a value (a parameter or a cached array) rather
+// than looking it up: TRUE if that value is abilityToCheck, or if the battler's current in-battle
+// learned slot (after suppression) is abilityToCheck.
+bool32 AbilityOrLearned(enum BattlerId battler, enum Ability ability, enum Ability abilityToCheck)
+{
+    if (ability == abilityToCheck)
+        return TRUE;
+    if (abilityToCheck == ABILITY_NONE || battler >= MAX_BATTLERS_COUNT)
+        return FALSE;
+    return GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED) == abilityToCheck;
 }
 
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability)
@@ -10273,7 +10285,7 @@ bool32 EmergencyExitCanBeTriggered(enum BattlerId battler, enum Ability ability)
 
 bool32 TryTriggerSymbiosis(enum BattlerId battler, u32 ally)
 {
-    return GetBattlerAbility(ally) == ABILITY_SYMBIOSIS
+    return BattlerHasAbility(ally, ABILITY_SYMBIOSIS)
         && gBattleMons[battler].item == ITEM_NONE
         && gBattleMons[ally].item != ITEM_NONE
         && CanBattlerGetOrLoseItem(battler, ally, gBattleMons[ally].item)

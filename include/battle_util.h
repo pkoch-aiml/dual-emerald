@@ -126,6 +126,7 @@ enum Ability GetBattlerAbilityInSlotInternal(enum BattlerId battler, enum Battle
 enum Ability GetBattlerAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot);
 bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability);
+bool32 AbilityOrLearned(enum BattlerId battler, enum Ability ability, enum Ability abilityToCheck);
 enum Ability GetBattlerPopupAbility(enum BattlerId battler);
 bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability);
