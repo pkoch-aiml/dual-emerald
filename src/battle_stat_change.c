@@ -510,7 +510,8 @@ static void TryPlayStatChangeAnimation(struct BattleCalcValues *cv, struct StatC
 
         statAnimId += isStatChangeByTwo ? STAT_ANIM_MINUS2 : STAT_ANIM_MINUS1;
 
-        if (ShouldDefiantCompetitiveActivate(cv->battlerDef, cv->abilities[cv->battlerDef]))
+        if (ShouldDefiantCompetitiveActivate(cv->battlerDef, cv->abilities[cv->battlerDef])
+         || ShouldDefiantCompetitiveActivate(cv->battlerDef, GetBattlerAbilityInSlot(cv->battlerDef, BATTLER_ABILITY_LEARNED)))
             numNegativeStats = 0;
 
         if (numNegativeStats > 1) // more than one stat, so the color is gray
@@ -686,7 +687,17 @@ static bool32 IsAbilityBlocked(struct BattleCalcValues *cv, struct StatChange *s
     if (st->certain)
         return FALSE;
 
-    if (CanAbilityPreventStatLoss(cv->abilities[cv->battlerDef]))
+    // Dual Emerald: either ability slot can block the drop; the popup names the slot that did.
+    enum Ability slotAbilities[NUM_BATTLER_ABILITY_SLOTS] = { cv->abilities[cv->battlerDef], GetBattlerAbilityInSlot(cv->battlerDef, BATTLER_ABILITY_LEARNED) };
+    enum Ability blockingAbility = ABILITY_NONE;
+
+    for (u32 slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS && blockingAbility == ABILITY_NONE; slot++)
+    {
+        if (CanAbilityPreventStatLoss(slotAbilities[slot]))
+            blockingAbility = slotAbilities[slot];
+    }
+
+    if (blockingAbility != ABILITY_NONE)
     {
         if (!st->onlyChecking)
         {
@@ -694,8 +705,11 @@ static bool32 IsAbilityBlocked(struct BattleCalcValues *cv, struct StatChange *s
             st->script = BattleScript_AbilityNoStatLoss;
         }
     }
-    else if (AbilityPreventsSpecificStatDrop(cv->abilities[cv->battlerDef], st->stat))
+    else if (AbilityPreventsSpecificStatDrop(slotAbilities[BATTLER_ABILITY_NATURAL], st->stat)
+          || AbilityPreventsSpecificStatDrop(slotAbilities[BATTLER_ABILITY_LEARNED], st->stat))
     {
+        blockingAbility = AbilityPreventsSpecificStatDrop(slotAbilities[BATTLER_ABILITY_NATURAL], st->stat)
+                        ? slotAbilities[BATTLER_ABILITY_NATURAL] : slotAbilities[BATTLER_ABILITY_LEARNED];
         if (!st->onlyChecking)
         {
             MarkStatsAsDone(st, st->stat);
@@ -712,7 +726,7 @@ static bool32 IsAbilityBlocked(struct BattleCalcValues *cv, struct StatChange *s
     {
         gBattleScripting.battler = cv->battlerDef;
         gBattlerAbility = cv->battlerDef;
-        gLastUsedAbility = cv->abilities[cv->battlerDef];
+        gLastUsedAbility = blockingAbility;
         RecordAbilityBattle(cv->battlerDef, gLastUsedAbility);
     }
 

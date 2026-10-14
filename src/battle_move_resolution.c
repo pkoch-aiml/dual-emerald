@@ -1565,6 +1565,8 @@ static enum CancelerResult CancelerPriorityBlock(struct BattleCalcValues *cv)
             continue;
 
         ability = cv->abilities[battler];
+        if (!IsDazzlingAbility(ability))
+            ability = GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED);
         if (IsDazzlingAbility(ability))
         {
             effect = TRUE;

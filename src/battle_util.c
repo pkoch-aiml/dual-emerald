@@ -459,16 +459,10 @@ static bool32 IsUnnerveAbilityOnOpposingSide(enum BattlerId battler)
         if (battler == battlerDef || IsBattlerAlly(battler, battlerDef))
             continue;
 
-        enum Ability ability = GetBattlerAbility(battlerDef);
-        switch (ability)
-        {
-        case ABILITY_UNNERVE:
-        case ABILITY_AS_ONE_ICE_RIDER:
-        case ABILITY_AS_ONE_SHADOW_RIDER:
+        if (BattlerHasAbility(battlerDef, ABILITY_UNNERVE)
+         || BattlerHasAbility(battlerDef, ABILITY_AS_ONE_ICE_RIDER)
+         || BattlerHasAbility(battlerDef, ABILITY_AS_ONE_SHADOW_RIDER))
             return TRUE;
-        default:
-            break;
-        }
     }
 
     return FALSE;
@@ -10279,15 +10273,8 @@ bool32 HasWeatherEffect(void)
 {
     for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
     {
-        enum Ability ability = GetBattlerAbility(battler);
-        switch (ability)
-        {
-        case ABILITY_CLOUD_NINE:
-        case ABILITY_AIR_LOCK:
+        if (BattlerHasAbility(battler, ABILITY_CLOUD_NINE) || BattlerHasAbility(battler, ABILITY_AIR_LOCK))
             return FALSE;
-        default:
-            break;
-        }
     }
 
     return TRUE;

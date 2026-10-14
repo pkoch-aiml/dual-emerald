@@ -12182,28 +12182,23 @@ void BS_TryWakeBattlersUproar(void)
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
-void BS_TryDefiantRattled(void)
+static bool32 TryDefiantRattledAbility(enum BattlerId battler, enum Ability ability)
 {
-    NATIVE_ARGS();
-
-    enum BattlerId battler = gBattleScripting.battler;
-    enum Ability ability = GetBattlerAbility(battler);
-
     switch (ability)
     {
     case ABILITY_DEFIANT:
     case ABILITY_COMPETITIVE:
         if (ShouldDefiantCompetitiveActivate(battler, ability))
         {
-            if (AbilityOrLearned(battler, ability, ABILITY_DEFIANT))
+            if (ability == ABILITY_DEFIANT)
                 SetStatChange2(battler, STAT_ATK, 2);
             else
                 SetStatChange2(battler, STAT_SPATK, 2);
             gBattlerAbility = battler;
+            gLastUsedAbility = ability;
             RecordAbilityBattle(battler, ability);
-            BattleScriptPush(cmd->nextInstr);
-            gBattlescriptCurrInstr = BattleScript_DefiantActivates;
-            return;
+            BattleScriptCall(BattleScript_DefiantActivates);
+            return TRUE;
         }
         break;
     case ABILITY_RATTLED:
@@ -12211,15 +12206,26 @@ void BS_TryDefiantRattled(void)
         {
             SetStatChange2(battler, STAT_SPEED, 1);
             gBattlerAbility = battler;
+            gLastUsedAbility = ability;
             RecordAbilityBattle(battler, ability);
-            BattleScriptPush(cmd->nextInstr);
-            gBattlescriptCurrInstr = BattleScript_DefiantActivates;
-            return;
+            BattleScriptCall(BattleScript_DefiantActivates);
+            return TRUE;
         }
         break;
     default:
         break;
     }
+    return FALSE;
+}
+
+void BS_TryDefiantRattled(void)
+{
+    NATIVE_ARGS();
+
+    enum BattlerId battler = gBattleScripting.battler;
+
+    if (TryScriptAbilitySlots(battler, TryDefiantRattledAbility, (const u8 *)cmd, cmd->nextInstr))
+        return;
 
     gBattleStruct->ignoreDefiant = FALSE;
     gBattlescriptCurrInstr = cmd->nextInstr;

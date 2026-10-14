@@ -196,3 +196,50 @@ SINGLE_BATTLE_TEST("Learned Mimicry changes the battler's type when terrain is s
         EXPECT_EQ(opponent->types[0], TYPE_ELECTRIC);
     }
 }
+
+SINGLE_BATTLE_TEST("Learned Clear Body prevents Intimidate and names the learned ability")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_CLEAR_BODY); }
+        OPPONENT(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_ARBOK) { Ability(ABILITY_INTIMIDATE); }
+    } WHEN {
+        TURN { SWITCH(opponent, 1); }
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_INTIMIDATE);
+        ABILITY_POPUP(player, ABILITY_CLEAR_BODY);
+        NOT ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_STATS_CHANGE, player);
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_ATK], DEFAULT_STAT_STAGE);
+    }
+}
+
+SINGLE_BATTLE_TEST("Natural Defiant and learned Competitive both activate on a stat drop")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_DEFIANT); LearnedAbility(ABILITY_COMPETITIVE); }
+        OPPONENT(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_ARBOK) { Ability(ABILITY_INTIMIDATE); }
+    } WHEN {
+        TURN { SWITCH(opponent, 1); }
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_INTIMIDATE);
+        ABILITY_POPUP(player, ABILITY_DEFIANT);
+        ABILITY_POPUP(player, ABILITY_COMPETITIVE);
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_ATK], DEFAULT_STAT_STAGE - 1 + 2);
+        EXPECT_EQ(player->statStages[STAT_SPATK], DEFAULT_STAT_STAGE + 2);
+    }
+}
+
+SINGLE_BATTLE_TEST("Learned Cloud Nine negates weather effects")
+{
+    GIVEN {
+        PLAYER(SPECIES_LUDICOLO) { Ability(ABILITY_RAIN_DISH); HP(1); MaxHP(100); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_CLOUD_NINE); }
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_RAIN_DANCE); }
+    } SCENE {
+        NOT ABILITY_POPUP(player, ABILITY_RAIN_DISH);
+    }
+}
