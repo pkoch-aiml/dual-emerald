@@ -47,11 +47,16 @@ Since the design rules out Terastalization and Dynamax, `teraType:5`, `dynamaxLe
 **Why not grow `BoxPokemon` instead?** PC storage (`struct PokemonStorage`, 420 mons) fills 9 save sectors with only about 2 KB to spare. Adding 4 bytes per mon would just fit, and then there would be no room left. We're keeping the 80-byte size and the 8-entry cap. Species that need more, like Mew, use the "all AMs" flag described in 1.3.
 
 Tasks:
-1. Add the fields and a `MON_DATA_LEARNED_ABILITY` entry in `include/constants/pokemon.h`. Handle it in `GetBoxMonData` and `SetBoxMonData` (`src/pokemon.c`), joining and splitting the two parts.
-2. Confirm that every way a Pokémon gets created leaves the slot at zero. `CreateBoxMon` zeroes the struct, so this should hold for wild, trainer, `givemon`, egg and daycare mons.
-3. **Do not** add the slot to `struct BattlePokemon` yet. Leaving it out guarantees the battle engine can't see it, which is the "no effect" requirement. Battles only write HP, PP, status and similar fields back to the party, so the learned ability survives a battle.
-4. Tests in `test/pokemon.c`: the slot round-trips through `SetMonData`/`GetMonData` for all 9-bit values, a freshly created mon is `ABILITY_NONE`, and the slot survives box deposit and withdrawal and evolution.
-5. Test in `test/daycare.c`: an egg from two parents that both have learned abilities hatches with an empty learned slot (design doc, *Breeding*).
+1. ✅ Add the fields and a `MON_DATA_LEARNED_ABILITY` entry to `enum MonData` in `include/pokemon.h`. Handle it in `GetBoxMonData` and `SetBoxMonData` (`src/pokemon.c`), joining and splitting the two parts. A `STATIC_ASSERT` stops the build if `ABILITIES_COUNT` grows past 512.
+2. ✅ Confirm that every way a Pokémon gets created leaves the slot at zero. `CreateBoxMon` zeroes the struct, so this holds for wild, trainer, `givemon`, `createmon` and egg mons. The only copy-from-another-mon path is Shedinja, which keeps Nincada's learned ability. That's legal, because Shedinja is listed as one of Nincada's evolutions.
+3. ✅ **Do not** add the slot to `struct BattlePokemon` yet. Leaving it out guarantees the battle engine can't see it, which is the "no effect" requirement. Battles only write HP, PP, status and similar fields back to the party, so the learned ability survives a battle.
+4. ✅ Tests in `test/learned_ability.c`, a separate file so upstream test files stay untouched:
+   - the slot round-trips through every 9-bit value
+   - neighboring fields aren't disturbed
+   - new mons (`CreateMon`, `givemon`, eggs, `createmon`) start empty
+   - data in the vanilla layout loads empty
+   - the slot survives PC storage and evolution
+   - an egg from two parents that both have learned abilities hatches empty (design doc, *Breeding*)
 
 ### 1.3 Dex data: learnable-ability pools
 **Shape.** Use the same pattern as the existing move learnsets:

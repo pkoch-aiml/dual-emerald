@@ -125,6 +125,7 @@ enum MonData {
     MON_DATA_GIGANTAMAX_FACTOR,
     MON_DATA_TERA_TYPE,
     MON_DATA_EVOLUTION_TRACKER,
+    MON_DATA_LEARNED_ABILITY,
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
@@ -134,10 +135,10 @@ struct PokemonSubstruct0
     enum Species species:11; // 2047 species.
     enum Type teraType:5; // 30 types.
     enum Item heldItem:10; // 1023 items.
-    u16 unused_02:6;
+    u16 learnedAbilityLo:6; // Low 6 bits of the learned ability.
     u32 experience:21;
     u32 nickname11:8; // 11th character of nickname.
-    u32 unused_04:3;
+    u32 learnedAbilityHi:3; // High 3 bits of the learned ability (511 abilities).
     u8 ppBonuses;
     u8 friendship;
     u16 pokeball:6; // 63 balls.

@@ -768,6 +768,7 @@ UNUSED static const struct BoxPokemon sBoxPokemonConstantsFit =
 };
 
 STATIC_ASSERT(MAX_LEVEL <= 100, PokemonSubstruct0_experience_PotentiallyTooSmall); // Maximum of ~2 million exp.
+STATIC_ASSERT(ABILITIES_COUNT <= (1 << 9), PokemonSubstruct0_learnedAbility_TooSmall); // learnedAbilityLo:6 + learnedAbilityHi:3.
 
 static u32 CompressStatus(u32 status)
 {
@@ -2426,6 +2427,12 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
                 }.combinedValue;
             }
             break;
+        case MON_DATA_LEARNED_ABILITY:
+            {
+                struct PokemonSubstruct0 *substruct0 = GetSubstruct0(boxMon);
+                retVal = substruct0->learnedAbilityLo | (substruct0->learnedAbilityHi << 6);
+            }
+            break;
         default:
             break;
         }
@@ -2856,6 +2863,15 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             SET32(evoTracker.combinedValue);
             substruct1->evolutionTracker1 = evoTracker.tracker1;
             substruct1->evolutionTracker2 = evoTracker.tracker2;
+            break;
+        }
+        case MON_DATA_LEARNED_ABILITY:
+        {
+            enum Ability learnedAbility;
+            struct PokemonSubstruct0 *substruct0 = GetSubstruct0(boxMon);
+            SET16(learnedAbility);
+            substruct0->learnedAbilityLo = learnedAbility;
+            substruct0->learnedAbilityHi = learnedAbility >> 6;
             break;
         }
         default:
