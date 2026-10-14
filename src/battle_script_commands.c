@@ -8839,6 +8839,9 @@ static void Cmd_tryoverwriteability(void)
         RemoveAbilityFlags(gBattlerTarget);
         gBattleScripting.abilityPopupOverwrite = naturalAbility;
         gBattleMons[gBattlerTarget].ability = gBattleMons[gBattlerTarget].volatiles.overwrittenAbility = newAbility;
+        // The popup and message name the natural slot. A stale gLastUsedAbility that matches the
+        // learned ability would make them name the learned one instead.
+        gLastUsedAbility = newAbility;
         gBattlescriptCurrInstr = cmd->nextInstr;
     }
 }

@@ -132,3 +132,21 @@ SINGLE_BATTLE_TEST("Overwriting a learned Neutralizing Gas ends the gas")
         EXPECT_EQ(opponent->learnedAbility, ABILITY_SIMPLE);
     }
 }
+
+SINGLE_BATTLE_TEST("Simple Beam names Simple, not the learned ability, after overwriting the natural ability")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_SPEED_BOOST); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); } // Speed Boost activates at the end of the turn
+        TURN { MOVE(player, MOVE_SIMPLE_BEAM); }
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_SPEED_BOOST);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SIMPLE_BEAM, player);
+        MESSAGE("The opposing Wobbuffet acquired Simple!");
+    } THEN {
+        EXPECT_EQ(opponent->ability, ABILITY_SIMPLE);
+        EXPECT_EQ(opponent->learnedAbility, ABILITY_SPEED_BOOST);
+    }
+}
