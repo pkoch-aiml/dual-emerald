@@ -22,6 +22,7 @@
 #include "config/contest.h"
 #include "config/debug.h"
 #include "config/dexnav.h"
+#include "config/dual_emerald.h"
 #include "config/follower_npc.h"
 #include "config/general.h"
 #include "config/item.h"
