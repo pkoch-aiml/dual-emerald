@@ -268,13 +268,14 @@ There's one test file for each rule in the design doc:
 - **Truant twice:** both copies share one "loafed last turn" state, so it acts exactly like a single Truant.
 - **Illusion:** no new work. It already has `cantBeCopied`, `cantBeSwapped` and `cantBeTraced`, so copy effects fail, and it's on no learnable list. Add one test confirming that Role Play/Receiver can't move it into a slot.
 
-## Milestone 4: Getting learned abilities ✅ Complete (pending in-game check)
+## Milestone 4: Getting learned abilities ✅ Complete, tagged `v0.4-getting-learned-abilities`
 
 **Decisions** (user, 2026-10-14):
 - AMs are reusable, like the expansion's modern TMs.
 - Cross-training at the PC takes both the source and the target from the party (may be revisited in a polish pass).
 - Starting AM list: Intimidate, Swarm, Run Away, Stench, Illuminate, Frisk, Sturdy, Infiltrator, Plus, Minus, Natural Cure. The real list and AM placement are Milestone 6.
 - The Ability Relearner is a debug-menu entry for now; Milestone 6 places an NPC.
+- Cross-Train is always available and the relearner is free; story-flag unlocks and costs are left for later (user, after the in-game check).
 
 **Stages:**
 - 4.1 ✅ Ability memory. 8 bits (`abilityMemoryLo:5` and `abilityMemoryHi:3`, formerly `unused_04`/`unused_06` in substruct 1) behind `MON_DATA_ABILITY_MEMORY`, one bit per learnable-list entry. Setting the learned ability to a list entry records its bit, so every teaching path remembers it automatically; abilities not on the list (e.g. via debug) aren't recorded, and clearing the slot forgets nothing. Tests in `test/learned_ability.c` (5).
