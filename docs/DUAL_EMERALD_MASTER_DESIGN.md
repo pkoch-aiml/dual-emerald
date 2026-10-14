@@ -59,5 +59,10 @@ Evolution can never cause a learned ability to become illegal. This is a design 
 ### Mega Evolution
 Mega evolved forms have a single possible natural ability and a single learned ability, which may not exist on the corresponding species' learnable list. Mega evolving overwrites both slots, and often gives players access to powerful ability combinations that are otherwise unachievable.
 
+### Foreseen Interactions
+- If a Pokemon has two abilities that both grant it immunity to a move, such as Dry Skin and Storm Drain with Water Gun, we should make sure to trigger any additional effects of both.
+- Pokemon with Neutralizing Gas can have a second ability, but it will have no effect in battle as long as the Pokemon is battling. (It can still be swapped/copied via Trace or Doodle, for example, and will still have any overworld effects, like Stench's.)
+- Players will likely try very hard to assemble a Pokemon with two abilities that grant a multiplicative power boost to its moves; we should make it a point to test these combinations, as well as combinations specific to double battles. By default, I want the effects to stack.
+
 ## Story
 I want to rewrite the entire story to center around Latios, Latias, and Jirachi instead of Groudon, Kyogre, and Rayquaza. In the tradition of Pokemon Run & Bun and other classic ROM hacks, the player will unlock the power of Mega Evolution along the way. I do not intend to enable Z-moves, Dynamax, or Terastalization.

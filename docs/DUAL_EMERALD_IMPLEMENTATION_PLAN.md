@@ -150,7 +150,7 @@ The work is split into stages. Each stage builds, passes the full `make check`, 
 - `GetBattlerAbilityInSlot(battler, slot)` applies the existing suppression rules (`notOnField`, Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield) to one slot, judged on that slot's own ability flags.
 - `BattlerHasAbility(battler, ability)` (+ `...IgnoreMoldBreaker`): true if either slot has the ability.
 - `GetBattlerAbility(battler)` keeps meaning "natural slot" during the migration, so unconverted call sites behave exactly as before.
-- **Neutralizing Gas (provisional, see the open questions):** the slot holding Neutralizing Gas stays active, and every other slot on the field, including the holder's other slot, is suppressed.
+- **Neutralizing Gas:** the slot holding Neutralizing Gas stays active, and every other slot on the field, including the holder's other slot, is suppressed (design doc, *Foreseen Interactions*). Abilities with `cantBeSuppressed` stay active as usual. Copy effects still see the raw slot.
 
 ### 2.3 Field-wide queries and Mold Breaker ✅
 - `IsAbilityOnSide`, `IsAbilityOnField` and escape prevention (Shadow Tag, Arena Trap, Magnet Pull, plus the Run Away check) use `BattlerHasAbility`. `GetAbilityPreventingEscape(battler, &ability)` also reports *which* ability traps, so the message names the right one.
@@ -158,16 +158,24 @@ The work is split into stages. Each stage builds, passes the full `make check`, 
 - Ability popups: `GetBattlerPopupAbility` names the learned ability when it is the one that just fired (`gLastUsedAbility`). Otherwise it names the natural ability, as before.
 - Tests in `test/battle/dual_ability/field_queries.c`: learned Damp, a partner's learned Sweet Veil, learned Arena Trap (with the right ability name), learned Run Away, and learned Mold Breaker vs. Levitate.
 
+**Approach for 2.4–2.6 (decided: Option A).** Function signatures and cached ability arrays stay single-ability. Wherever code compares a battler's ability to a specific ability, it also checks that battler's **current in-battle learned slot** through `GetBattlerAbilityInSlot` (after suppression, and including changes made during battle). Helpers:
+- `BattlerHasAbility(battler, X)` where the code asks about a battler directly;
+- `AbilityOrLearned(battler, ability, X)`, true if the passed-in ability is X or the battler's learned slot is X, where the code receives the ability as a parameter or reads a cached array.
+
+The AI therefore sees real learned slots until Milestone 5. Pokémon not on the field (switch-in evaluation, party displays) use the party mon's stored learned ability, or the fixed one for Mega/Primal forms. This keeps the diff, and future upstream merges, small.
+
 ### 2.4 Direct comparisons
 - Convert `GetBattlerAbility(b) == ABILITY_X` and `ability = GetBattlerAbility(b); ... ability == ABILITY_X` to `BattlerHasAbility`, file by file: hold effects, end of turn, move resolution, script commands, util.
 
 ### 2.5 Trigger dispatch
 - `AbilityBattleEffects` callers loop over both slots, **natural first**.
 - Events that track "already triggered", such as the switch-in ability, need state for each slot so both slots can fire, as with Intimidate + Drizzle.
+- **Two immunities to one move** (e.g. Dry Skin + Storm Drain vs. Water Gun): both abilities' extra effects trigger (design doc, *Foreseen Interactions*).
 - `gLastUsedAbility` and the popups name the slot that actually fired.
 
 ### 2.6 Damage, speed, accuracy and crit modifiers
-- `struct DamageContext` and `struct BattleCalcValues` cache one ability per battler. They gain the learned slot, and the `switch (ability)` modifier blocks run once per slot. Doubled abilities stack wherever the code naturally stacks them.
+- The `switch (ability)` modifier blocks run once per slot, using `AbilityOrLearned` or a per-slot loop. **Boosts from both slots stack by default**, including doubled abilities (design doc, *Foreseen Interactions*).
+- Dedicated tests for multiplicative power-boost pairs (e.g. Huge Power + Hustle, Technician + Sheer Force, Adaptability + Tough Claws), and for doubles-specific combinations (auras, Battery/Power Spot, Friend Guard).
 
 ### 2.7 Remaining sites and duplicates
 - Remaining `.ability` reads (messages, battle debug menu, battle TV).
@@ -237,5 +245,9 @@ Doubles by default (trainers, wild encounters, the one-mon edge case), trainer t
 - Illusion: already can't be copied, and it isn't on any list. Ability Shield protects both slots. Truant twice acts like one Truant. Neutralizing Gas works from either slot and never stacks.
 - AMs live in the TM/HM pocket.
 
+- Neutralizing Gas: the holder's other slot is suppressed while it battles, but can still be copied or swapped, and keeps its overworld effects (design doc, *Foreseen Interactions*).
+- Milestone 2 uses Option A: single-ability signatures plus checks of the current in-battle learned slot (see the approach before 2.4).
+- Effects from both slots stack by default; two immunities to one move trigger both abilities' extra effects.
+
 **Open:**
-1. **Neutralizing Gas holder's other slot:** when a battler holds Neutralizing Gas in one slot, is its *other* slot suppressed too? It's implemented provisionally as **yes**, the literal reading of "affects all ability slots" (2.2). The alternative is that the holder is exempt entirely.
+- Nothing right now.
