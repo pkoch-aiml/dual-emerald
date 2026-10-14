@@ -4526,27 +4526,30 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
     }
     else
     {
-        // Priority-raising abilities apply once per slot, so boosts from both slots stack.
-        u32 galeWingsCount = CountAbilityOrLearned(battler, ability, ABILITY_GALE_WINGS);
-        if (galeWingsCount != 0
+        // Dual Emerald: priority bonuses don't stack; the move gets the largest one that applies.
+        // Prankster only counts when nothing else gives as much, so a tie doesn't saddle the move
+        // with Prankster's Dark-type immunity.
+        s32 bonus = 0;
+
+        if (AbilityOrLearned(battler, ability, ABILITY_GALE_WINGS)
          && (GetConfig(B_GALE_WINGS) < GEN_7 || IsBattlerAtMaxHp(battler))
          && GetMoveType(move) == TYPE_FLYING)
-            priority += galeWingsCount;
-
-        if (IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
-        {
-            gProtectStructs[battler].pranksterElevated = 1;
-            priority += CountAbilityOrLearned(battler, ability, ABILITY_PRANKSTER);
-        }
-
-        if (GetMoveEffect(move) == EFFECT_GRASSY_GLIDE
+            bonus = 1;
+        else if (GetMoveEffect(move) == EFFECT_GRASSY_GLIDE
          && IsGrassyTerrainAffected(battler, ability, GetBattlerHoldEffect(battler), gFieldTimers.terrain)
          && GetActiveGimmick(gBattlerAttacker) != GIMMICK_DYNAMAX && !IsGimmickSelected(battler, GIMMICK_DYNAMAX))
-            priority++;
+            bonus = 1;
 
-        u32 triageCount = CountAbilityOrLearned(battler, ability, ABILITY_TRIAGE);
-        if (triageCount != 0 && IsHealingMove(move))
-            priority += 3 * triageCount;
+        if (AbilityOrLearned(battler, ability, ABILITY_TRIAGE) && IsHealingMove(move))
+            bonus = max(bonus, 3);
+
+        if (bonus < 1 && IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
+        {
+            gProtectStructs[battler].pranksterElevated = 1;
+            bonus = 1;
+        }
+
+        priority += bonus;
     }
 
     return priority;

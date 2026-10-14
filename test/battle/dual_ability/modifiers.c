@@ -226,20 +226,60 @@ SINGLE_BATTLE_TEST("Super Luck in both slots raises the critical hit ratio by 2 
     }
 }
 
-SINGLE_BATTLE_TEST("Natural Prankster and learned Gale Wings both raise a Flying-type status move's priority")
+SINGLE_BATTLE_TEST("Natural Prankster and learned Gale Wings don't stack: Tailwind gets +1 priority, not +2")
 {
     GIVEN {
-        WITH_CONFIG(B_GALE_WINGS, GEN_6);
-        ASSUME(GetMoveType(MOVE_ROOST) == TYPE_FLYING);
-        ASSUME(GetMoveCategory(MOVE_ROOST) == DAMAGE_CATEGORY_STATUS);
+        ASSUME(GetMoveType(MOVE_TAILWIND) == TYPE_FLYING);
+        ASSUME(GetMoveCategory(MOVE_TAILWIND) == DAMAGE_CATEGORY_STATUS);
         ASSUME(GetMovePriority(MOVE_QUICK_ATTACK) == 1);
-        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_PRANKSTER); LearnedAbility(ABILITY_GALE_WINGS); Speed(1); HP(100); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_PRANKSTER); LearnedAbility(ABILITY_GALE_WINGS); Speed(1); }
         OPPONENT(SPECIES_WOBBUFFET) { Speed(100); }
     } WHEN {
-        TURN { MOVE(opponent, MOVE_QUICK_ATTACK); MOVE(player, MOVE_ROOST); }
+        TURN { MOVE(opponent, MOVE_QUICK_ATTACK); MOVE(player, MOVE_TAILWIND); }
     } SCENE {
-        ANIMATION(ANIM_TYPE_MOVE, MOVE_ROOST, player);
         ANIMATION(ANIM_TYPE_MOVE, MOVE_QUICK_ATTACK, opponent);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_TAILWIND, player);
+    }
+}
+
+SINGLE_BATTLE_TEST("Natural Prankster and learned Gale Wings: a Flying-type status move isn't Prankster-boosted, so it affects Dark types")
+{
+    bool32 learnedGaleWings;
+
+    PARAMETRIZE { learnedGaleWings = FALSE; }
+    PARAMETRIZE { learnedGaleWings = TRUE; }
+
+    GIVEN {
+        WITH_CONFIG(B_PRANKSTER_DARK_TYPES, GEN_7);
+        ASSUME(GetMoveType(MOVE_FEATHER_DANCE) == TYPE_FLYING);
+        ASSUME(GetMoveCategory(MOVE_FEATHER_DANCE) == DAMAGE_CATEGORY_STATUS);
+        ASSUME(GetSpeciesType(SPECIES_UMBREON, 0) == TYPE_DARK);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_PRANKSTER); LearnedAbility(learnedGaleWings ? ABILITY_GALE_WINGS : ABILITY_NONE); }
+        OPPONENT(SPECIES_UMBREON);
+    } WHEN {
+        TURN { MOVE(player, MOVE_FEATHER_DANCE); }
+    } SCENE {
+        if (learnedGaleWings) {
+            ANIMATION(ANIM_TYPE_MOVE, MOVE_FEATHER_DANCE, player);
+        } else {
+            NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_FEATHER_DANCE, player);
+        }
+    }
+}
+
+SINGLE_BATTLE_TEST("Natural Prankster and learned Triage: Roost gets Triage's +3 priority, not +4")
+{
+    GIVEN {
+        ASSUME(IsHealingMove(MOVE_ROOST));
+        ASSUME(GetMovePriority(MOVE_EXTREME_SPEED) == 2);
+        ASSUME(GetMovePriority(MOVE_FAKE_OUT) == 3);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_PRANKSTER); LearnedAbility(ABILITY_TRIAGE); Speed(1); HP(100); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(100); }
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_FAKE_OUT); MOVE(player, MOVE_ROOST); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_FAKE_OUT, opponent);
+        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_ROOST, player);
     }
 }
 
