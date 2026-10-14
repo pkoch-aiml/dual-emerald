@@ -10,7 +10,7 @@ Companion to [DUAL_EMERALD_MASTER_DESIGN.md](DUAL_EMERALD_MASTER_DESIGN.md). Bas
 
 ---
 
-## Milestone 1: "Dual Slot Foundation" (first release)
+## Milestone 1: "Dual Slot Foundation" (first release) ✅ Complete, tagged `v0.1-dual-slot`
 
 **Goal:** every Pokémon has a learned-ability slot that is stored, saved and shown, but has no effect on gameplay. Every species and form has a non-empty learnable-ability pool in its dex data.
 
@@ -118,10 +118,10 @@ Tasks:
 - Tests in `test/learned_ability.c` cover both functions.
 - **Set Learned (Any)**, in the same submenu: choose a party mon, then enter any ability ID from 0 (None) to `ABILITIES_COUNT - 1` with the number selector. The ability's name updates as you scroll. It ignores the species' list, so it's for testing interactions while designing. Added as `DebugNative_Party_SetAnyLearnedAbility` and `Debug_EventScript_SetAnyLearnedAbility`, modeled on Set Friendship.
 
-### 1.6 Release check
-- `make check` passes, and a clean build boots.
-- Manual pass: start a new game, play through the introduction, open the summary for the starter, press R and see the empty learned slot. Set a learned ability through debug and see the name and description appear. Save, reload and check that it's still set. Win a battle and check that it's still set. Box the mon and withdraw it. Evolve it (rare candy through debug) and check that it's still set.
-- Tag the commit (e.g. `v0.1-dual-slot`).
+### 1.6 Release check ✅
+- ✅ `make check` passes (5,431 passed; known-failing, expect-failing and to-do counts unchanged from the baseline), and a clean build boots.
+- ✅ Manual pass, confirmed in the game: start a new game, play through the introduction, open the summary for the starter, press R and see the empty learned slot. Set a learned ability through debug and see the name and description appear. Save, reload and check that it's still set. Win a battle and check that it's still set. Box the mon and withdraw it. Evolve it (rare candy through debug) and check that it's still set.
+- ✅ Tagged `v0.1-dual-slot`.
 
 ---
 
