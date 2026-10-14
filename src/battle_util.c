@@ -1021,6 +1021,7 @@ void HandleAction_ActionFinished(void)
     gBattleStruct->bouncedMoveIsUsed = FALSE;
     gBattleStruct->snatchedMoveIsUsed = FALSE;
     gBattleScripting.moveendState = 0;
+    gBattleStruct->eventState.moveEndAbilitySlot = 0;
     gBattleCommunication[3] = 0;
     gBattleCommunication[4] = 0;
     gBattleResources->battleScriptsStack->size = 0;

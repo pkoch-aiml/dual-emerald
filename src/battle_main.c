@@ -3555,6 +3555,7 @@ static void TryDoEventsBeforeFirstTurn(void)
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler = 0;
         gBattleScripting.moveendState = 0;
+        gBattleStruct->eventState.moveEndAbilitySlot = 0;
         gBattleStruct->eventState.faintedAction = 0;
         gBattleStruct->eventState.endTurn = 0;
 
@@ -3617,6 +3618,7 @@ bool32 EndTurnEvents(void) // Called from Battle Script
     gBattleScripting.animTurn = 0;
     gBattleScripting.animTargetsHit = 0;
     gBattleScripting.moveendState = 0;
+    gBattleStruct->eventState.moveEndAbilitySlot = 0;
 
     for (u32 i = 0; i < 5; i++)
         gBattleCommunication[i] = 0;

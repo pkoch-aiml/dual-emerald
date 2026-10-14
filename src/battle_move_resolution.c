@@ -3427,10 +3427,16 @@ static enum MoveEndResult MoveEndAbilities(struct BattleCalcValues *cv)
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
     enum Ability targetAbility = cv->abilities[cv->battlerDef];
 
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END, cv->battlerDef, targetAbility, 0, TRUE))
+    if (TryAbilityEffectsBySlot(ABILITYEFFECT_MOVE_END, cv->battlerDef, targetAbility, 0, TRUE, &gBattleStruct->eventState.moveEndAbilitySlot))
+    {
         result = MOVEEND_RESULT_RUN_SCRIPT;
+        if (gBattleStruct->eventState.moveEndAbilitySlot != 0)
+            return result; // Come back for the next ability slot.
+    }
     else if (TryClearIllusion(cv->battlerDef, targetAbility))
+    {
         result = MOVEEND_RESULT_RUN_SCRIPT;
+    }
 
     gBattleScripting.moveendState++;
     return result;
@@ -3459,8 +3465,12 @@ static enum MoveEndResult MoveEndFormChangeOnHit(struct BattleCalcValues *cv)
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_FORM_CHANGE_ON_HIT, cv->battlerDef, cv->abilities[cv->battlerDef], 0, TRUE))
+    if (TryAbilityEffectsBySlot(ABILITYEFFECT_FORM_CHANGE_ON_HIT, cv->battlerDef, cv->abilities[cv->battlerDef], 0, TRUE, &gBattleStruct->eventState.moveEndAbilitySlot))
+    {
         result = MOVEEND_RESULT_RUN_SCRIPT;
+        if (gBattleStruct->eventState.moveEndAbilitySlot != 0)
+            return result; // Come back for the next ability slot.
+    }
 
     gBattleScripting.moveendState++;
     return result;
@@ -3470,8 +3480,12 @@ static enum MoveEndResult MoveEndAbilitiesAttacker(struct BattleCalcValues *cv)
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, cv->battlerAtk, 0, 0, TRUE))
+    if (TryAbilityEffectsBySlot(ABILITYEFFECT_MOVE_END_ATTACKER, cv->battlerAtk, 0, 0, TRUE, &gBattleStruct->eventState.moveEndAbilitySlot))
+    {
         result = MOVEEND_RESULT_RUN_SCRIPT;
+        if (gBattleStruct->eventState.moveEndAbilitySlot != 0)
+            return result; // Come back for the next ability slot.
+    }
 
     gBattleScripting.moveendState++;
     return result;
@@ -3509,7 +3523,7 @@ static enum MoveEndResult MoveEndStatusImmunityAbilities(struct BattleCalcValues
 
     for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
     {
-        if (AbilityBattleEffects(ABILITYEFFECT_IMMUNITY, battler, 0, 0, TRUE))
+        if (TryAbilityEffectsAnySlot(ABILITYEFFECT_IMMUNITY, battler, 0, 0, TRUE))
             result = MOVEEND_RESULT_RUN_SCRIPT;
     }
 
@@ -3874,6 +3888,7 @@ static enum MoveEndResult MoveEndNextTarget(struct BattleCalcValues *cv)
         {
             gBattleStruct->moveTarget[gBattlerAttacker] = gBattlerTarget = partner;
             gBattleScripting.moveendState = 0;
+            gBattleStruct->eventState.moveEndAbilitySlot = 0;
 
             if (IsStatChangeMove(cv->move))
                 return MOVEEND_RESULT_CONTINUE;
@@ -3893,6 +3908,7 @@ static enum MoveEndResult MoveEndNextTarget(struct BattleCalcValues *cv)
             // no point in writting
             gBattleStruct->moveTarget[gBattlerAttacker] = gBattlerTarget = nextTarget; // Fix for moxie spread moves
             gBattleScripting.moveendState = 0;
+            gBattleStruct->eventState.moveEndAbilitySlot = 0;
 
             if (IsStatChangeMove(cv->move))
                 return MOVEEND_RESULT_CONTINUE;
@@ -3968,6 +3984,7 @@ static enum MoveEndResult MoveEndBouncedMove(struct BattleCalcValues *cv)
             gBattleStruct->eventState.atkCancelerBattler = 0;
             gBattleStruct->moveTarget[cv->battlerAtk] = cv->battlerDef;
             gBattleScripting.moveendState = 0;
+            gBattleStruct->eventState.moveEndAbilitySlot = 0;
             gBattleScripting.animTurn = 0;
             gBattleScripting.animTargetsHit = 0;
 
@@ -4039,6 +4056,7 @@ static enum MoveEndResult MoveEndMultihitMove(struct BattleCalcValues *cv)
                 gBattleStruct->battlerState[cv->battlerAtk].targetsDone[cv->battlerDef] = FALSE;
                 gBattleScripting.animTargetsHit = 0;
                 gBattleScripting.moveendState = 0;
+                gBattleStruct->eventState.moveEndAbilitySlot = 0;
                 gSpecialStatuses[cv->battlerAtk].multiHitOn = TRUE;
                 BattleScriptPush(GetMoveBattleScript(cv->move));
                 gBattlescriptCurrInstr = BattleScript_FlushMessageBox;
@@ -4511,8 +4529,12 @@ static enum MoveEndResult MoveEndAbilityEffectFoesFainted(struct BattleCalcValue
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_FOES_FAINTED, cv->battlerAtk, cv->abilities[cv->battlerAtk], cv->move, TRUE))
+    if (TryAbilityEffectsBySlot(ABILITYEFFECT_MOVE_END_FOES_FAINTED, cv->battlerAtk, cv->abilities[cv->battlerAtk], cv->move, TRUE, &gBattleStruct->eventState.moveEndAbilitySlot))
+    {
         result = MOVEEND_RESULT_RUN_SCRIPT;
+        if (gBattleStruct->eventState.moveEndAbilitySlot != 0)
+            return result; // Come back for the next ability slot.
+    }
 
     gBattleScripting.moveendState++;
     return result;
@@ -4564,12 +4586,20 @@ static enum MoveEndResult MoveEndColorChange(struct BattleCalcValues *cv)
 {
     while (gBattleStruct->eventState.moveEndBattler < gBattlersCount)
     {
-        enum BattlerId battler = gBattleStruct->eventState.moveEndBattler++;
+        enum BattlerId battler = gBattleStruct->eventState.moveEndBattler;
 
         if (battler == cv->battlerAtk)
+        {
+            gBattleStruct->eventState.moveEndBattler++;
             continue;
-        if (AbilityBattleEffects(ABILITYEFFECT_COLOR_CHANGE, battler, cv->abilities[battler], 0, TRUE))
+        }
+        if (TryAbilityEffectsBySlot(ABILITYEFFECT_COLOR_CHANGE, battler, cv->abilities[battler], 0, TRUE, &gBattleStruct->eventState.moveEndAbilitySlot))
+        {
+            if (gBattleStruct->eventState.moveEndAbilitySlot == 0)
+                gBattleStruct->eventState.moveEndBattler++;
             return MOVEEND_RESULT_RUN_SCRIPT;
+        }
+        gBattleStruct->eventState.moveEndBattler++;
     }
 
     gBattleStruct->eventState.moveEndBattler = 0;
@@ -4939,10 +4969,15 @@ static enum MoveEndResult MoveEndOpportunist(struct BattleCalcValues *cv)
 {
     while (gBattleStruct->eventState.moveEndBattler < gBattlersCount)
     {
-        enum BattlerId battler = gBattlersByRawSpeed[gBattleStruct->eventState.moveEndBattler++];
+        enum BattlerId battler = gBattlersByRawSpeed[gBattleStruct->eventState.moveEndBattler];
 
-        if (AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, cv->abilities[battler], 0, TRUE))
+        if (TryAbilityEffectsBySlot(ABILITYEFFECT_OPPORTUNIST, battler, cv->abilities[battler], 0, TRUE, &gBattleStruct->eventState.moveEndAbilitySlot))
+        {
+            if (gBattleStruct->eventState.moveEndAbilitySlot == 0)
+                gBattleStruct->eventState.moveEndBattler++;
             return MOVEEND_RESULT_RUN_SCRIPT;
+        }
+        gBattleStruct->eventState.moveEndBattler++;
     }
 
     gBattleStruct->eventState.moveEndBattler = 0;
