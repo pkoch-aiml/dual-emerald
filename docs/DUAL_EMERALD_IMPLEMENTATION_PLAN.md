@@ -125,7 +125,7 @@ Tasks:
 
 ---
 
-## Milestone 2: Battle engine core (learned abilities take effect)
+## Milestone 2: Battle engine core (learned abilities take effect) ✅ Complete, tagged `v0.2-learned-abilities-in-battle`
 
 Most of the engine assumes one ability per battler. Measured on 2026-10-13:
 
