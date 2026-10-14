@@ -1668,7 +1668,7 @@ static bool32 HandleEndTurnEmergencyExit(enum BattlerId battler)
     if (EmergencyExitCanBeTriggered(battler, ability))
     {
         gBattleScripting.battler = gBattlerAbility = battler;
-        gLastUsedAbility = ability;
+        gLastUsedAbility = GetEmergencyExitAbility(battler);
         gSpecialStatuses[battler].queuedSwitch = QUEUED_SWITCH_OPEN_PARTY_SCREEN;
         BattleScriptCall(BattleScript_EmergencyExit);
         effect = TRUE;

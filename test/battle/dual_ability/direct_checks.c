@@ -155,3 +155,100 @@ SINGLE_BATTLE_TEST("Heal Bell does not cure a benched Pokémon with learned Soun
         MESSAGE("Exploud was hurt by its poisoning!");
     }
 }
+
+SINGLE_BATTLE_TEST("Learned Levitate makes the battler immune to Ground-type moves")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_MUD_SLAP) == TYPE_GROUND);
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_LEVITATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_MUD_SLAP); }
+    } SCENE {
+        NOT HP_BAR(opponent);
+        ABILITY_POPUP(opponent, ABILITY_LEVITATE);
+    }
+}
+
+SINGLE_BATTLE_TEST("Ability Shield protects the learned slot against Neutralizing Gas")
+{
+    enum Item item;
+
+    PARAMETRIZE { item = ITEM_ABILITY_SHIELD; }
+    PARAMETRIZE { item = ITEM_NONE; }
+
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_ABILITY_SHIELD].holdEffect == HOLD_EFFECT_ABILITY_SHIELD);
+        PLAYER(SPECIES_TORKOAL) { Ability(ABILITY_WHITE_SMOKE); LearnedAbility(ABILITY_DROUGHT); Item(item); }
+        OPPONENT(SPECIES_KOFFING) { Ability(ABILITY_NEUTRALIZING_GAS); }
+    } WHEN {
+        TURN {}
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_NEUTRALIZING_GAS);
+        MESSAGE("Neutralizing gas filled the area!");
+        if (item == ITEM_ABILITY_SHIELD) {
+            ABILITY_POPUP(player, ABILITY_DROUGHT);
+        } else {
+            NOT ABILITY_POPUP(player, ABILITY_DROUGHT);
+        }
+    }
+}
+
+SINGLE_BATTLE_TEST("Ability Shield protects the learned slot against Mold Breaker")
+{
+    enum Item item;
+
+    PARAMETRIZE { item = ITEM_ABILITY_SHIELD; }
+    PARAMETRIZE { item = ITEM_NONE; }
+
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_ABILITY_SHIELD].holdEffect == HOLD_EFFECT_ABILITY_SHIELD);
+        ASSUME(GetMoveType(MOVE_MUD_SLAP) == TYPE_GROUND);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_MOLD_BREAKER); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_LEVITATE); Item(item); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_MUD_SLAP); }
+    } SCENE {
+        if (item == ITEM_ABILITY_SHIELD)
+            NOT HP_BAR(opponent);
+        else
+            HP_BAR(opponent);
+    }
+}
+
+SINGLE_BATTLE_TEST("A learned status-blocking ability names itself when it blocks the status")
+{
+    enum Ability learned;
+    enum Move move;
+
+    PARAMETRIZE { learned = ABILITY_LIMBER;     move = MOVE_THUNDER_WAVE; }
+    PARAMETRIZE { learned = ABILITY_INSOMNIA;   move = MOVE_SPORE; }
+    PARAMETRIZE { learned = ABILITY_WATER_VEIL; move = MOVE_WILL_O_WISP; }
+    PARAMETRIZE { learned = ABILITY_IMMUNITY;   move = MOVE_TOXIC; }
+
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(learned); }
+    } WHEN {
+        TURN { MOVE(player, move); }
+    } SCENE {
+        ABILITY_POPUP(opponent, learned);
+    } THEN {
+        EXPECT_EQ(opponent->status1, STATUS1_NONE);
+    }
+}
+
+SINGLE_BATTLE_TEST("Learned Klutz stops the holder's item from working")
+{
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_LEFTOVERS].holdEffect == HOLD_EFFECT_LEFTOVERS);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_KLUTZ); Item(ITEM_LEFTOVERS); HP(100); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); }
+    } SCENE {
+        NOT MESSAGE("Wobbuffet restored a little HP using its Leftovers!");
+    } THEN {
+        EXPECT_EQ(player->hp, 100);
+    }
+}

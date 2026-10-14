@@ -218,10 +218,12 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - Ability-*writing* effects (Skill Swap, Trace, Mummy, Transform and so on) still write the natural slot until Milestone 3 gives each its rule. `RemoveAbilityFlags` also stays natural-only for now: if both slots hold Flash Fire and the natural one is overwritten, the boost is cleared.
 - Tests in `test/battle/dual_ability/remaining_sites.c` (13).
 
-### 2.8 Tests and wrap-up
-- `test/battle/dual_ability/` gets basic tests: learned Intimidate, learned Levitate, stacking, natural-first order, Ability Shield covering both slots, and Mega/Primal overwrite (done in 2.1).
-- **Robustness test:** give a battler an illegal learned ability, e.g. Stance Change on a non-Aegislash, run a few turns, and check that the battle finishes without crashing or asserting. The actual behavior doesn't matter.
-- The AI keeps reading the natural slot until Milestone 5. The robustness tests make sure that doesn't crash.
+### 2.8 Tests and wrap-up ✅
+- Basic tests: learned Intimidate, stacking, natural-first order and Mega/Primal overwrite were already covered by earlier stages. Added: learned Levitate, learned Klutz, and Ability Shield protecting the learned slot against Neutralizing Gas and Mold Breaker (`direct_checks.c`).
+- **Robustness sweep** (`robustness.c`): every ability (318) as the learned ability of every battler, in a singles and a doubles AI battle (smart AI) of three turns. Behavior isn't checked, only that the battle runs. The player's side uses Celebrate because scripted attacks can become illegal choices under abilities such as Gorilla Tactics or Cursed Body. The sweep found:
+  - **Crash: learned Klutz** caused infinite recursion. `GetBattlerHoldEffectIgnoreAbility` passed `ABILITY_NONE` to mean "ignore Klutz", but the learned-slot Klutz check reads the learned slot, which checks for an Ability Shield through that same function. Ignoring the ability now skips Klutz explicitly.
+- **Popups naming the natural ability instead of the learned one that acted.** Fixed for Levitate/Eelevate, Wonder Guard/Telepathy, Overcoat (powder moves), the status blockers in `CanSetNonVolatileStatus` (Immunity, Limber, Water Veil/Water Bubble, Thermal Exchange, Vital Spirit/Insomnia, Magma Armor, Comatose/Purifying Salt, Leaf Guard, Shields Down), and end-of-turn Emergency Exit/Wimp Out. A parametrized test covers four status blockers.
+- The AI still reads the natural slot until Milestone 5; the robustness sweep runs the smart AI against every learned ability without problems.
 
 ## Milestone 3: Ability-interaction rules
 

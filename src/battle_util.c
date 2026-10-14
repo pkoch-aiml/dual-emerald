@@ -2307,7 +2307,10 @@ bool32 IsPowderMoveBlocked(struct DamageContext *ctx)
 
     if (ctx->runScript)
     {
-        gLastUsedAbility = ctx->abilities[ctx->battlerDef];
+        if (GetConfig(B_POWDER_OVERCOAT) >= GEN_6 && AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_OVERCOAT))
+            gLastUsedAbility = ABILITY_OVERCOAT;
+        else
+            gLastUsedAbility = ctx->abilities[ctx->battlerDef];
         gBattlerAbility = ctx->battlerDef;
         BattleScriptCall(BattleScript_PowderMoveNoEffect);
     }
@@ -5538,6 +5541,15 @@ bool32 IsSafeguardProtected(enum BattlerId battlerAtk, enum BattlerId battlerDef
     return TRUE;
 }
 
+// Dual Emerald: which of two abilities a battler has, natural slot first, for naming the one that
+// blocked something in its popup. The caller has already checked that it has one of them.
+static enum Ability GetMatchedAbility(enum BattlerId battler, enum Ability naturalAbility, enum Ability ability1, enum Ability ability2)
+{
+    if (naturalAbility == ability1 || naturalAbility == ability2)
+        return naturalAbility;
+    return AbilityOrLearned(battler, naturalAbility, ability1) ? ability1 : ability2;
+}
+
 bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Ability abilityAtk, enum Ability abilityDef, enum MoveEffect effect, enum ResultOption option)
 {
     const u8 *battleScript = NULL;
@@ -5567,6 +5579,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_IMMUNITY))
         {
             abilityAffected = TRUE;
+            abilityDef = ABILITY_IMMUNITY;
             battleScript = BattleScript_ImmunityProtected;
         }
         break;
@@ -5586,6 +5599,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_LIMBER))
         {
             abilityAffected = TRUE;
+            abilityDef = ABILITY_LIMBER;
             battleScript = BattleScript_ImmunityProtected;
         }
         break;
@@ -5601,11 +5615,13 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_WATER_VEIL) || AbilityOrLearned(battlerDef, abilityDef, ABILITY_WATER_BUBBLE))
         {
             abilityAffected = TRUE;
+            abilityDef = GetMatchedAbility(battlerDef, abilityDef, ABILITY_WATER_VEIL, ABILITY_WATER_BUBBLE);
             battleScript = BattleScript_ImmunityProtected;
         }
         else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_THERMAL_EXCHANGE))
         {
             abilityAffected = TRUE;
+            abilityDef = ABILITY_THERMAL_EXCHANGE;
             battleScript = BattleScript_AbilityProtectsDoesntAffect;
         }
         break;
@@ -5636,6 +5652,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_VITAL_SPIRIT) || AbilityOrLearned(battlerDef, abilityDef, ABILITY_INSOMNIA))
         {
             abilityAffected = TRUE;
+            abilityDef = GetMatchedAbility(battlerDef, abilityDef, ABILITY_VITAL_SPIRIT, ABILITY_INSOMNIA);
             battleScript = BattleScript_PrintAbilityMadeIneffective;
         }
         break;
@@ -5652,6 +5669,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
         else if (AbilityOrLearned(battlerDef, abilityDef, ABILITY_MAGMA_ARMOR))
         {
             abilityAffected = TRUE;
+            abilityDef = ABILITY_MAGMA_ARMOR;
             battleScript = BattleScript_NotAffected;
         }
         break;
@@ -5667,6 +5685,7 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
      || AbilityOrLearned(battlerDef, abilityDef, ABILITY_PURIFYING_SALT))
     {
         abilityAffected = TRUE;
+        abilityDef = GetMatchedAbility(battlerDef, abilityDef, ABILITY_COMATOSE, ABILITY_PURIFYING_SALT);
         battleScript = BattleScript_AbilityProtectsDoesntAffect;
     }
     else if (IsMistyTerrainAffected(battlerDef, abilityDef, GetBattlerHoldEffect(battlerDef), gFieldTimers.terrain))
@@ -5676,11 +5695,13 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
     else if (IsLeafGuardProtected(battlerDef, abilityDef))
     {
         abilityAffected = TRUE;
+        abilityDef = ABILITY_LEAF_GUARD;
         battleScript = BattleScript_AbilityProtectsDoesntAffect;
     }
     else if (IsShieldsDownProtected(battlerDef, abilityDef))
     {
         abilityAffected = TRUE;
+        abilityDef = ABILITY_SHIELDS_DOWN;
         battleScript = BattleScript_AbilityProtectsDoesntAffect;
     }
     else if ((sideBattler = IsFlowerVeilProtected(battlerDef)))
@@ -5976,12 +5997,21 @@ enum HoldEffect GetBattlerHoldEffect(enum BattlerId battler)
     return GetBattlerHoldEffectInternal(battler, GetBattlerAbility(battler));
 }
 
+static enum HoldEffect GetBattlerHoldEffectKlutz(enum BattlerId battler, enum Ability ability, bool32 ignoreKlutz);
+
+// Dual Emerald: ignoring the ability must skip the learned slot's Klutz too. Reading the learned
+// slot checks for an Ability Shield through this function, so checking it here would recurse.
 enum HoldEffect GetBattlerHoldEffectIgnoreAbility(enum BattlerId battler)
 {
-    return GetBattlerHoldEffectInternal(battler, ABILITY_NONE);
+    return GetBattlerHoldEffectKlutz(battler, ABILITY_NONE, TRUE);
 }
 
 enum HoldEffect GetBattlerHoldEffectInternal(enum BattlerId battler, enum Ability ability)
+{
+    return GetBattlerHoldEffectKlutz(battler, ability, FALSE);
+}
+
+static enum HoldEffect GetBattlerHoldEffectKlutz(enum BattlerId battler, enum Ability ability, bool32 ignoreKlutz)
 {
     enum HoldEffect holdEffect;
 
@@ -5992,7 +6022,7 @@ enum HoldEffect GetBattlerHoldEffectInternal(enum BattlerId battler, enum Abilit
 
     if (gBattleMons[battler].volatiles.embargoTimer
      || gFieldStatuses & STATUS_FIELD_MAGIC_ROOM
-     || (AbilityOrLearned(battler, ability, ABILITY_KLUTZ) && !gBattleMons[battler].volatiles.gastroAcid))
+     || (!ignoreKlutz && AbilityOrLearned(battler, ability, ABILITY_KLUTZ) && !gBattleMons[battler].volatiles.gastroAcid))
     {
         if (gBattleMons[battler].item == ITEM_ENIGMA_BERRY_E_READER)
             holdEffect = gEnigmaBerries[battler].holdEffect;
@@ -8690,7 +8720,7 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(struct DamageCont
         if (ctx->updateFlags && (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_LEVITATE) || AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_EELEVATE)))
         {
             gBattleStruct->moveResultFlags[ctx->battlerDef] |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
-            gLastUsedAbility = ctx->abilities[ctx->battlerDef];
+            gLastUsedAbility = GetMatchedAbility(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_LEVITATE, ABILITY_EELEVATE);
             ctx->abilityBlocked = TRUE;
             RecordAbilityBattle(ctx->battlerDef, ctx->abilities[ctx->battlerDef]);
         }
@@ -8723,7 +8753,8 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(struct DamageCont
         modifier = UQ_4_12(1.0);
     }
 
-    if (((AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_WONDER_GUARD) && modifier <= UQ_4_12(1.0) && !isPresentHealing)
+    bool32 wonderGuardBlocks = AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_WONDER_GUARD) && modifier <= UQ_4_12(1.0) && !isPresentHealing;
+    if ((wonderGuardBlocks
         || (AbilityOrLearned(ctx->battlerDef, ctx->abilities[ctx->battlerDef], ABILITY_TELEPATHY) && ctx->battlerDef == GetPartnerBattler(ctx->battlerAtk)))
         && GetMovePower(ctx->move) != 0)
     {
@@ -8731,7 +8762,7 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(struct DamageCont
         ctx->abilityBlocked = TRUE;
         if (ctx->updateFlags)
         {
-            gLastUsedAbility = ctx->abilities[ctx->battlerDef];
+            gLastUsedAbility = wonderGuardBlocks ? ABILITY_WONDER_GUARD : ABILITY_TELEPATHY;
             gBattleStruct->moveResultFlags[ctx->battlerDef] |= MOVE_RESULT_MISSED;
             RecordAbilityBattle(ctx->battlerDef, gBattleMons[ctx->battlerDef].ability);
         }
