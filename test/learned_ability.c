@@ -7,6 +7,7 @@
 #include "test/overworld_script.h"
 #include "test/test.h"
 #include "constants/characters.h"
+#include "constants/form_change_types.h"
 
 // Dual Emerald: tests for the learned ability slot in BoxPokemon.
 
@@ -142,4 +143,106 @@ TEST("(Daycare) Eggs hatch with no learned ability even if both parents have one
     ScriptHatchMon();
     EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_IS_EGG), FALSE);
     EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY), ABILITY_NONE);
+}
+
+static bool32 LearnableAbilityListsEqual(const u16 *a, const u16 *b)
+{
+    u32 i;
+    for (i = 0; a[i] != ABILITY_NONE || b[i] != ABILITY_NONE; i++)
+    {
+        if (a[i] != b[i])
+            return FALSE;
+    }
+    return TRUE;
+}
+
+TEST("Every species has a valid learnable ability list")
+{
+    enum Species species = SPECIES_NONE;
+    for (enum Species i = 1; i < NUM_SPECIES; i++)
+    {
+        if (IsSpeciesEnabled(i))
+            PARAMETRIZE_LABEL("ID:%d - %S", i, GetSpeciesName(i)) { species = i; }
+    }
+
+    const u16 *learnableAbilities = gSpeciesInfo[species].learnableAbilities;
+    u32 i, j;
+    EXPECT(learnableAbilities != NULL);
+    EXPECT_NE(learnableAbilities[0], ABILITY_NONE);
+    for (i = 0; learnableAbilities[i] != ABILITY_NONE; i++)
+    {
+        EXPECT_LT(i, DE_MAX_LEARNABLE_ABILITIES);
+        EXPECT_LT(learnableAbilities[i], ABILITIES_COUNT);
+        EXPECT(!gAbilitiesInfo[learnableAbilities[i]].cantBeSwapped);
+        for (j = 0; j < i; j++)
+            EXPECT_NE(learnableAbilities[i], learnableAbilities[j]);
+    }
+}
+
+TEST("Evolutions' learnable ability lists start with their pre-evolution's list")
+{
+    enum Species species = SPECIES_NONE;
+    for (enum Species i = 1; i < NUM_SPECIES; i++)
+    {
+        if (IsSpeciesEnabled(i) && GetSpeciesEvolutions(i) != NULL)
+            PARAMETRIZE_LABEL("ID:%d - %S", i, GetSpeciesName(i)) { species = i; }
+    }
+
+    const struct Evolution *evolutions = GetSpeciesEvolutions(species);
+    const u16 *preEvoList = GetSpeciesLearnableAbilities(species);
+    for (u32 i = 0; evolutions[i].method != EVOLUTIONS_END; i++)
+    {
+        enum Species target = evolutions[i].targetSpecies;
+        if (!IsSpeciesEnabled(target))
+            continue;
+        const u16 *evoList = GetSpeciesLearnableAbilities(target);
+        for (u32 j = 0; preEvoList[j] != ABILITY_NONE; j++)
+            EXPECT_EQ(evoList[j], preEvoList[j]);
+    }
+}
+
+TEST("Species linked by a form change share the same learnable ability list")
+{
+    enum Species species = SPECIES_NONE;
+    for (enum Species i = 1; i < NUM_SPECIES; i++)
+    {
+        if (IsSpeciesEnabled(i) && gSpeciesInfo[i].formChangeTable != NULL)
+            PARAMETRIZE_LABEL("ID:%d - %S", i, GetSpeciesName(i)) { species = i; }
+    }
+
+    const struct FormChange *formChangeTable = gSpeciesInfo[species].formChangeTable;
+    for (u32 i = 0; formChangeTable[i].method != FORM_CHANGE_TERMINATOR; i++)
+    {
+        enum Species target = formChangeTable[i].targetSpecies;
+        if (target == SPECIES_NONE || !IsSpeciesEnabled(target))
+            continue;
+        EXPECT(LearnableAbilityListsEqual(GetSpeciesLearnableAbilities(species), GetSpeciesLearnableAbilities(target)));
+    }
+}
+
+TEST("Exactly the Mega and Primal forms have a fixed learned ability")
+{
+    enum Species species = SPECIES_NONE;
+    for (enum Species i = 1; i < NUM_SPECIES; i++)
+    {
+        if (IsSpeciesEnabled(i))
+            PARAMETRIZE_LABEL("ID:%d - %S", i, GetSpeciesName(i)) { species = i; }
+    }
+
+    enum Ability fixedLearnedAbility = GetSpeciesFixedLearnedAbility(species);
+    if (gSpeciesInfo[species].isMegaEvolution || gSpeciesInfo[species].isPrimalReversion)
+    {
+        EXPECT_NE(fixedLearnedAbility, ABILITY_NONE);
+        EXPECT_LT(fixedLearnedAbility, ABILITIES_COUNT);
+    }
+    else
+    {
+        EXPECT_EQ(fixedLearnedAbility, ABILITY_NONE);
+    }
+}
+
+TEST("Mew is compatible with all AMs")
+{
+    EXPECT(SpeciesLearnsAllAMs(SPECIES_MEW));
+    EXPECT(!SpeciesLearnsAllAMs(SPECIES_MEWTWO));
 }

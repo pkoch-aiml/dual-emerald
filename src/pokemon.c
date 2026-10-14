@@ -3312,6 +3312,25 @@ const u16 *GetSpeciesTeachableLearnset(enum Species species)
     return learnset;
 }
 
+const u16 *GetSpeciesLearnableAbilities(enum Species species)
+{
+    static const u16 sNoLearnableAbilities[] = { ABILITY_NONE };
+    const u16 *learnableAbilities = gSpeciesInfo[SanitizeSpeciesId(species)].learnableAbilities;
+    if (learnableAbilities == NULL)
+        return sNoLearnableAbilities;
+    return learnableAbilities;
+}
+
+enum Ability GetSpeciesFixedLearnedAbility(enum Species species)
+{
+    return gSpeciesInfo[SanitizeSpeciesId(species)].fixedLearnedAbility;
+}
+
+bool32 SpeciesLearnsAllAMs(enum Species species)
+{
+    return gSpeciesInfo[SanitizeSpeciesId(species)].learnsAllAMs;
+}
+
 const u16 *GetSpeciesEggMoves(enum Species species)
 {
     const u16 *learnset = gSpeciesInfo[SanitizeSpeciesId(species)].eggMoveLearnset;

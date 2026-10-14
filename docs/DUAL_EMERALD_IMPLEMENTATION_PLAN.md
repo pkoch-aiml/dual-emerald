@@ -90,19 +90,19 @@ After that the file is edited by hand, and the script isn't part of the build.
 A flagged species still has its own non-empty list of at most 8 entries. That list is for abilities that don't come from AMs, and the usual test still applies. Milestone 1 only adds the flag and a getter, `SpeciesLearnsAllAMs(species)`; the behavior arrives in Milestone 4.
 
 Tasks:
-1. Add the struct fields (`learnableAbilities`, `fixedLearnedAbility`, `learnsAllAMs`), the generated lists, and the generated species-entry lines. Set `learnsAllAMs` on Mew.
-2. Add the getters `GetSpeciesLearnableAbilities(species)`, `GetSpeciesFixedLearnedAbility(species)` and `SpeciesLearnsAllAMs(species)` in `src/pokemon.c`, next to the other learnset getters.
-3. Tests in `test/species.c`, covering every species from 1 to `NUM_SPECIES`:
-   - the pointer isn't NULL
-   - the list is non-empty
-   - it has at most 8 entries
-   - no entry repeats
-   - no entry has `cantBeSwapped` set
-   - every entry is `< ABILITIES_COUNT`
+1. ✅ Add the struct fields (`learnableAbilities`, `fixedLearnedAbility:9`, and `learnsAllAMs:1` taken from `padding4`) to `struct SpeciesInfo` in `include/pokemon.h`. Generate the lists into `src/data/pokemon/learnable_abilities.h` and add the fields to every species entry, using `dev_scripts/dual_emerald/generate_learnable_abilities.py`. Set `learnsAllAMs` on Mew.
+   - 1,571 entries share 1,189 lists. 99 Mega/Primal forms have a `fixedLearnedAbility`. 38 groups whose only abilities are unswappable (Arceus, Silvally, the Paradox Pokémon, Zorua and others) use the fallback `ABILITY_RUN_AWAY`.
+   - Grouping: species share a list when they share a `formChangeTable`, appear as targets in each other's tables, or come from the same species-info macro. A species with several pre-evolutions merges those groups too, as with Gholdengo, where both Gimmighoul forms share a list.
+   - An ability counts as unswappable when its `cantBeSwapped` is anything other than `FALSE`, including config expressions such as Zen Mode's `B_UPDATED_ABILITY_DATA >= GEN_7`. That makes 31 abilities.
+   - Each list sits inside the same `#if` conditions as its group's main species. A check confirmed that every entry using a list is covered by those conditions.
+2. ✅ Add the getters `GetSpeciesLearnableAbilities(species)`, `GetSpeciesFixedLearnedAbility(species)` and `SpeciesLearnsAllAMs(species)` in `src/pokemon.c`, next to the other learnset getters.
+3. ✅ Tests in `test/learned_ability.c` (not `test/species.c`), covering every enabled species:
+   - the pointer isn't NULL, the list is non-empty, it has at most `DE_MAX_LEARNABLE_ABILITIES` entries, no entry repeats, none has `cantBeSwapped`, and every entry is `< ABILITIES_COUNT`
    - **right-superset:** for each evolution `S → T`, `T`'s list starts with `S`'s list in the same order
-   - **form groups:** species linked by an out-of-battle form change have identical lists
-   - **Mega/Primal:** `fixedLearnedAbility` is set (non-zero, `< ABILITIES_COUNT`) if and only if `isMegaEvolution` or `isPrimalReversion` is set
-4. Check the ROM size and free space.
+   - **form groups:** each form-change table target has the same list as its source
+   - **Mega/Primal:** `fixedLearnedAbility` is set if and only if `isMegaEvolution` or `isPrimalReversion` is set
+   - Mew has `learnsAllAMs`
+4. ✅ ROM size: 79.73% → 79.78% of 32 MB (about +17.7 KB).
 
 ### 1.4 Summary screen: R swaps the displayed ability
 - `src/pokemon_summary_screen.c`: add `learnedAbility` and a `showLearnedAbility` toggle to the summary struct, and fill `learnedAbility` in the same place as `abilityNum` (line ~1533).

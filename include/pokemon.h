@@ -419,6 +419,7 @@ struct SpeciesInfo /*0xC4*/
     u8 growthRate;
     enum EggGroup eggGroups[EGG_GROUPS_PER_MON];
     enum Ability abilities[NUM_ABILITY_SLOTS]; // 3 abilities, no longer u8 because we have over 255 abilities now.
+    enum Ability fixedLearnedAbility:9; // Dual Emerald: Mega and Primal forms only. Overwrites the learned ability slot in battle.
     u8 safariZoneFleeRate;
 
     // Pokédex data
@@ -495,7 +496,8 @@ struct SpeciesInfo /*0xC4*/
     u32 isFrontierBanned:1; // This species is not allowed to participate in Battle Frontier facilities.
     u32 isSkyBattleBanned:1;
     u32 isTelekinesisBanned:1;
-    u32 padding4:8;
+    u32 learnsAllAMs:1; // Dual Emerald: compatible with every AM, and always remembers its whole list plus every AM ability.
+    u32 padding4:7;
     // Shadow settings
     s8 enemyShadowXOffset; // This determines the X-offset for an enemy Pokémon's shadow during battle; negative values point left, positive values point right.
     s8 enemyShadowYOffset; // This determines the Y-offset for an enemy Pokémon's shadow during battle; negative values point up, positive values point down.
@@ -505,6 +507,7 @@ struct SpeciesInfo /*0xC4*/
     // Move Data
     const struct LevelUpMove *levelUpLearnset;
     const u16 *teachableLearnset;
+    const u16 *learnableAbilities; // Dual Emerald: ABILITY_NONE-terminated list of abilities this species can learn.
     const u16 *eggMoveLearnset;
     const struct Evolution *evolutions;
     const u16 *formSpeciesIdTable;
@@ -864,6 +867,9 @@ u32 GetSpeciesBaseStat(enum Species species, u32 statIndex);
 u32 GetSpeciesBaseStatTotal(enum Species species);
 const struct LevelUpMove *GetSpeciesLevelUpLearnset(enum Species species);
 const u16 *GetSpeciesTeachableLearnset(enum Species species);
+const u16 *GetSpeciesLearnableAbilities(enum Species species);
+enum Ability GetSpeciesFixedLearnedAbility(enum Species species);
+bool32 SpeciesLearnsAllAMs(enum Species species);
 const u16 *GetSpeciesEggMoves(enum Species species);
 bool32 SpeciesHasEggMove(enum Species species, enum Move move);
 const struct Evolution *GetSpeciesEvolutions(enum Species species);
