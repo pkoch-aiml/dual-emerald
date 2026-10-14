@@ -133,8 +133,22 @@ enum Ability GetBattlerAbilityInSlot(enum BattlerId battler, enum BattlerAbility
 bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability);
 bool32 IsLearnedAbilityActive(enum BattlerId battler, enum Ability ability);
+enum Ability GetActiveLearnedAbility(enum BattlerId battler);
 extern bool8 gIgnoreLearnedAbilities;
 extern struct BattlePokemon gBattleMons[MAX_BATTLERS_COUNT];
+
+// TRUE once any battler in the current battle has had a learned ability. Until then, every
+// learned-slot check returns at once, so battles without learned abilities pay almost nothing for
+// them. Cleared when battle resources are allocated and never mid-battle, so it can only err
+// toward checking.
+extern bool8 gBattleHasLearnedAbilities;
+
+// Call wherever a learned ability is written to gBattleMons.
+static inline void NoteBattleLearnedAbility(enum Ability learnedAbility)
+{
+    if (learnedAbility != ABILITY_NONE)
+        gBattleHasLearnedAbilities = TRUE;
+}
 
 // For code that receives a battler's ability as a value (a parameter or a cached array) rather
 // than looking it up: TRUE if that value is abilityToCheck, or if the battler's current in-battle
@@ -144,9 +158,26 @@ static inline bool32 AbilityOrLearned(enum BattlerId battler, enum Ability abili
 {
     if (ability == abilityToCheck)
         return TRUE;
-    if (abilityToCheck == ABILITY_NONE || gBattleMons[battler].learnedAbility != abilityToCheck)
+    if (!gBattleHasLearnedAbilities || abilityToCheck == ABILITY_NONE || gBattleMons[battler].learnedAbility != abilityToCheck)
         return FALSE;
     return IsLearnedAbilityActive(battler, abilityToCheck);
+}
+
+// The battler's learned ability after suppression, or ABILITY_NONE. For modifier code that runs a
+// per-ability switch once per slot so that both slots' boosts stack. Inline for the same reason as
+// AbilityOrLearned; the common case is an empty learned slot.
+static inline enum Ability GetLearnedAbilityForCalc(enum BattlerId battler)
+{
+    if (!gBattleHasLearnedAbilities || gBattleMons[battler].learnedAbility == ABILITY_NONE)
+        return ABILITY_NONE;
+    return GetActiveLearnedAbility(battler);
+}
+
+// How many of the battler's slots hold abilityToCheck (0-2), for boosts that stack when doubled.
+// ability is the natural ability as the caller has it, as for AbilityOrLearned.
+static inline u32 CountAbilityOrLearned(enum BattlerId battler, enum Ability ability, enum Ability abilityToCheck)
+{
+    return (ability == abilityToCheck) + (abilityToCheck != ABILITY_NONE && GetLearnedAbilityForCalc(battler) == abilityToCheck);
 }
 enum Ability GetBattlerPopupAbility(enum BattlerId battler);
 bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability ability);

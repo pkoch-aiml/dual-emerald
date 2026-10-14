@@ -189,9 +189,19 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - Design doc, *Foreseen Interactions*: an ability that switches its holder out doesn't stop the learned ability from triggering on the same attack (Emergency Exit + learned Flame Body), and there's a test for it.
 - Tests in `test/battle/dual_ability/triggers.c` (18).
 
-### 2.6 Damage, speed, accuracy and crit modifiers
-- The `switch (ability)` modifier blocks run once per slot, using `AbilityOrLearned` or a per-slot loop. **Boosts from both slots stack by default**, including doubled abilities (design doc, *Foreseen Interactions*).
-- Dedicated tests for multiplicative power-boost pairs (e.g. Huge Power + Hustle, Technician + Sheer Force, Adaptability + Tough Claws), and for doubles-specific combinations (auras, Battery/Power Spot, Friend Guard).
+### 2.6 Damage, speed, accuracy and crit modifiers ✅
+- **Modifiers that multiply stack, including doubled abilities.** Each `switch (ability)` modifier block became a per-slot helper that runs for the natural slot, then the learned slot: base power (attacker, attacker's partner, target), attack and defense stats (attacker, target, partners), final damage (Sniper/Tinted Lens/Neuroforce, Multiscale/Filter/Fluffy and so on, Friend Guard), speed, and accuracy (Compound Eyes, Hustle, Sand Veil and so on, ally Victory Star). For example, Huge Power + Hustle is 3x, Huge Power twice is 4x and Swift Swim twice is 4x.
+- **Abilities that set or negate something apply once** (user's ruling): Adaptability sets STAB to 2x, so two copies still give 2x. Guts twice gives two 1.5x boosts but cancels the burn drop only once. These were already single checks (`AbilityOrLearned`).
+- **Counted per slot:** Super Luck (+1 crit stage each, or x4 each under Gen 1 rules), Serene Grace (x2 each), Heavy Metal/Light Metal (x2 or /2 each), and priority boosts (Gale Wings, Prankster and Triage each add their boost, so Prankster + Gale Wings gives a Flying-type status move +2).
+- **Fixed:** Dark Aura/Fairy Aura/Aura Break in a learned slot weren't seen (`DmgCalc_IsAbilityOnField`). Plus/Minus now see the partner's learned slot.
+- Booster Energy still boosts a mon whose paradox ability is gone, as upstream does.
+- Deferred to 2.7: Simple and Contrary (stat-change modifiers), and the switch-out, `RemoveAbilityFlags` and immunity-cure switches.
+- **AI records:** `RecordAbilityBattle` can record a learned ability as if it were the natural one. Revisit in Milestone 5.
+- **Performance.**
+  - `gBattleHasLearnedAbilities` is set wherever a learned ability is written to `gBattleMons` and cleared when battle resources are allocated. While it's FALSE, `AbilityOrLearned` and `GetLearnedAbilityForCalc` return at once.
+  - The Makefile raises GCC's `max-inline-insns-single` for `battle_util.o` only. The added code had pushed hot inline helpers in that file over the default limit, so they were called out of line. That cost about 1.5% of AI thinking time (measured in CPU cycles), enough to break upstream's zero-headroom frame ceilings.
+  - With the setting, the AI thinking-time tests run slightly faster than before 2.6 (doubles, smart: 8.27M cycles vs 8.28M), and all ceilings hold, including `AI_FRAME_CEILING_DOUBLES_NO_FLAGS` at 15 from 2.5.
+- Tests in `test/battle/dual_ability/modifiers.c` (16): Huge Power + Hustle, Huge Power twice, Technician + Sheer Force, Adaptability + Tough Claws, Adaptability twice, Guts twice while burned, Multiscale + Shadow Shield, learned Thick Fat, Swift Swim twice, Chlorophyll + Unburden, Super Luck twice, Prankster + Gale Wings, Battery + Power Spot on a partner, Friend Guard twice on a partner, learned Dark Aura, and Plus with a partner's learned Minus.
 
 ### 2.7 Remaining sites and duplicates
 - Remaining `.ability` reads (messages, battle debug menu, battle TV).

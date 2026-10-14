@@ -3134,6 +3134,7 @@ static void DoBattleIntro(void)
             else
             {
                 memcpy(&gBattleMons[battler], &gBattleResources->bufferB[battler][4], sizeof(struct BattlePokemon));
+                NoteBattleLearnedAbility(gBattleMons[battler].learnedAbility);
                 gBattleMons[battler].types[0] = GetSpeciesType(gBattleMons[battler].species, 0);
                 gBattleMons[battler].types[1] = GetSpeciesType(gBattleMons[battler].species, 1);
                 gBattleMons[battler].types[2] = TYPE_MYSTERY;
@@ -4378,6 +4379,65 @@ void SwapTurnOrder(u8 id1, u8 id2)
 }
 
 // For AI, so it doesn't 'cheat' by knowing player's ability
+// One slot's speed modifier.
+static inline u32 ApplySpeedAbility(enum BattlerId battler, enum Ability ability, enum HoldEffect holdEffect, u32 weather, u32 speed, bool32 *paradoxBoostApplied)
+{
+    switch (ability)
+    {
+    // weather abilities
+    case ABILITY_SWIFT_SWIM:
+        if (holdEffect != HOLD_EFFECT_UTILITY_UMBRELLA && weather & B_WEATHER_RAIN)
+            speed *= 2;
+        break;
+    case ABILITY_CHLOROPHYLL:
+        if (holdEffect != HOLD_EFFECT_UTILITY_UMBRELLA && weather & B_WEATHER_SUN)
+            speed *= 2;
+        break;
+    case ABILITY_SAND_RUSH:
+        if (weather & B_WEATHER_SANDSTORM)
+            speed *= 2;
+        break;
+    case ABILITY_SLUSH_RUSH:
+        if (weather & B_WEATHER_ICY_ANY)
+            speed *= 2;
+        break;
+    // other abilities
+    case ABILITY_QUICK_FEET:
+        if (gBattleMons[battler].status1 & STATUS1_ANY)
+            speed = (speed * 150) / 100;
+        break;
+    case ABILITY_SURGE_SURFER:
+        if (gFieldTimers.terrain == B_TERRAIN_ELECTRIC)
+            speed *= 2;
+        break;
+    case ABILITY_SLOW_START:
+        if (gBattleMons[battler].volatiles.slowStartTimer != 0)
+            speed /= 2;
+        break;
+    case ABILITY_PROTOSYNTHESIS:
+        if ((!gBattleMons[battler].volatiles.transformed && weather & B_WEATHER_SUN) || gBattleMons[battler].volatiles.boosterEnergyActivated)
+        {
+            *paradoxBoostApplied = TRUE;
+            speed = (GetParadoxBoostedStatId(battler) == STAT_SPEED) ? (speed * 150) / 100 : speed;
+        }
+        break;
+    case ABILITY_QUARK_DRIVE:
+        if (!(gBattleMons[battler].volatiles.transformed) && (gFieldTimers.terrain == B_TERRAIN_ELECTRIC || gBattleMons[battler].volatiles.boosterEnergyActivated))
+        {
+            *paradoxBoostApplied = TRUE;
+            speed = (GetParadoxBoostedStatId(battler) == STAT_SPEED) ? (speed * 150) / 100 : speed;
+        }
+        break;
+    case ABILITY_UNBURDEN:
+        if (gBattleMons[battler].volatiles.unburdenActive)
+            speed *= 2;
+        break;
+    default:
+        break;
+    }
+    return speed;
+}
+
 u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum HoldEffect holdEffect)
 {
     u32 speed = gBattleMons[battler].speed;
@@ -4386,30 +4446,16 @@ u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum 
     speed *= gStatStageRatios[gBattleMons[battler].statStages[STAT_SPEED]][0];
     speed /= gStatStageRatios[gBattleMons[battler].statStages[STAT_SPEED]][1];
 
+    // abilities, once per slot so boosts from both slots stack
     u32 weather = GetWeather();
-    // weather abilities
-    if (AbilityOrLearned(battler, ability, ABILITY_SWIFT_SWIM)       && holdEffect != HOLD_EFFECT_UTILITY_UMBRELLA && weather  & B_WEATHER_RAIN)
-        speed *= 2;
-    else if (AbilityOrLearned(battler, ability, ABILITY_CHLOROPHYLL) && holdEffect != HOLD_EFFECT_UTILITY_UMBRELLA && weather  & B_WEATHER_SUN)
-        speed *= 2;
-    else if (AbilityOrLearned(battler, ability, ABILITY_SAND_RUSH)   && weather & B_WEATHER_SANDSTORM)
-        speed *= 2;
-    else if (AbilityOrLearned(battler, ability, ABILITY_SLUSH_RUSH)  && weather & B_WEATHER_ICY_ANY)
-        speed *= 2;
-
-    // other abilities
-    if (AbilityOrLearned(battler, ability, ABILITY_QUICK_FEET) && gBattleMons[battler].status1 & STATUS1_ANY)
+    bool32 paradoxBoostApplied = FALSE;
+    speed = ApplySpeedAbility(battler, ability, holdEffect, weather, speed, &paradoxBoostApplied);
+    enum Ability learnedAbility = GetLearnedAbilityForCalc(battler);
+    if (learnedAbility != ABILITY_NONE)
+        speed = ApplySpeedAbility(battler, learnedAbility, holdEffect, weather, speed, &paradoxBoostApplied);
+    // Booster Energy keeps boosting after the paradox ability is lost
+    if (!paradoxBoostApplied && gBattleMons[battler].volatiles.boosterEnergyActivated && GetParadoxBoostedStatId(battler) == STAT_SPEED)
         speed = (speed * 150) / 100;
-    else if (AbilityOrLearned(battler, ability, ABILITY_SURGE_SURFER) && gFieldTimers.terrain == B_TERRAIN_ELECTRIC)
-        speed *= 2;
-    else if (AbilityOrLearned(battler, ability, ABILITY_SLOW_START) && gBattleMons[battler].volatiles.slowStartTimer != 0)
-        speed /= 2;
-    else if ((AbilityOrLearned(battler, ability, ABILITY_PROTOSYNTHESIS) && !gBattleMons[battler].volatiles.transformed && weather & B_WEATHER_SUN) || gBattleMons[battler].volatiles.boosterEnergyActivated)
-        speed = (GetParadoxBoostedStatId(battler) == STAT_SPEED) ? (speed * 150) / 100 : speed;
-    else if (AbilityOrLearned(battler, ability, ABILITY_QUARK_DRIVE) && !(gBattleMons[battler].volatiles.transformed) && (gFieldTimers.terrain == B_TERRAIN_ELECTRIC || gBattleMons[battler].volatiles.boosterEnergyActivated))
-        speed = (GetParadoxBoostedStatId(battler) == STAT_SPEED) ? (speed * 150) / 100 : speed;
-    else if (AbilityOrLearned(battler, ability, ABILITY_UNBURDEN) && gBattleMons[battler].volatiles.unburdenActive)
-        speed *= 2;
 
     // player's badge boost
     if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED_LINK | BATTLE_TYPE_FRONTIER))
@@ -4478,26 +4524,29 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
     {
         priority = -8;
     }
-    else if (AbilityOrLearned(battler, ability, ABILITY_GALE_WINGS)
-          && (GetConfig(B_GALE_WINGS) < GEN_7 || IsBattlerAtMaxHp(battler))
-          && GetMoveType(move) == TYPE_FLYING)
+    else
     {
-        priority++;
-    }
-    else if (IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
-    {
-        gProtectStructs[battler].pranksterElevated = 1;
-        priority++;
-    }
-    else if (GetMoveEffect(move) == EFFECT_GRASSY_GLIDE
-          && IsGrassyTerrainAffected(battler, ability, GetBattlerHoldEffect(battler), gFieldTimers.terrain)
-          && GetActiveGimmick(gBattlerAttacker) != GIMMICK_DYNAMAX && !IsGimmickSelected(battler, GIMMICK_DYNAMAX))
-    {
-        priority++;
-    }
-    else if (AbilityOrLearned(battler, ability, ABILITY_TRIAGE) && IsHealingMove(move))
-    {
-        priority += 3;
+        // Priority-raising abilities apply once per slot, so boosts from both slots stack.
+        u32 galeWingsCount = CountAbilityOrLearned(battler, ability, ABILITY_GALE_WINGS);
+        if (galeWingsCount != 0
+         && (GetConfig(B_GALE_WINGS) < GEN_7 || IsBattlerAtMaxHp(battler))
+         && GetMoveType(move) == TYPE_FLYING)
+            priority += galeWingsCount;
+
+        if (IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
+        {
+            gProtectStructs[battler].pranksterElevated = 1;
+            priority += CountAbilityOrLearned(battler, ability, ABILITY_PRANKSTER);
+        }
+
+        if (GetMoveEffect(move) == EFFECT_GRASSY_GLIDE
+         && IsGrassyTerrainAffected(battler, ability, GetBattlerHoldEffect(battler), gFieldTimers.terrain)
+         && GetActiveGimmick(gBattlerAttacker) != GIMMICK_DYNAMAX && !IsGimmickSelected(battler, GIMMICK_DYNAMAX))
+            priority++;
+
+        u32 triageCount = CountAbilityOrLearned(battler, ability, ABILITY_TRIAGE);
+        if (triageCount != 0 && IsHealingMove(move))
+            priority += 3 * triageCount;
     }
 
     return priority;

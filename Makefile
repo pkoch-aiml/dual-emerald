@@ -452,6 +452,9 @@ clean-teachables: clean-teachables_intermediates
 
 $(C_BUILDDIR)/librfu_intr.o: CFLAGS := -mthumb-interwork -O2 -mabi=apcs-gnu -mtune=arm7tdmi -march=armv4t -fno-toplevel-reorder -Wno-pointer-to-int-cast
 $(C_BUILDDIR)/berry_crush.o: override CFLAGS += -Wno-address-of-packed-member
+# Dual Emerald: battle_util.c's damage and type calcs rely on large inline helpers; the default
+# per-function inline limit leaves hot ones out of line once the learned-slot code is added.
+$(C_BUILDDIR)/battle_util.o: override CFLAGS += --param max-inline-insns-single=1000
 $(C_BUILDDIR)/agb_flash.o: override CFLAGS += -fno-toplevel-reorder
 $(C_BUILDDIR)/pokedex_plus_hgss.o: CFLAGS := -mthumb -mthumb-interwork -O2 -mabi=apcs-gnu -mtune=arm7tdmi -march=armv4t -Wno-pointer-to-int-cast -std=gnu17 -Werror -Wall -Wno-strict-aliasing -Wno-attribute-alias -Woverride-init
 # Annoyingly we can't turn this on just for src/data/trainers.h

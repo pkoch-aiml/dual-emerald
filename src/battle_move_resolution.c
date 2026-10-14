@@ -4304,12 +4304,13 @@ static enum MoveEndResult MoveEndMoveBlock(struct BattleCalcValues *cv)
             if (IsBattlerTurnDamaged(battlerDef, EXCLUDING_SUBSTITUTES) && IsBattlerAlive(cv->battlerAtk))
             {
                 u32 chance = GetMoveSecondaryEffectChance(cv->move);
-                bool32 hasSereneGrace = AbilityOrLearned(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_SERENE_GRACE);
+                u32 sereneGraceCount = CountAbilityOrLearned(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_SERENE_GRACE);
+                bool32 hasSereneGrace = sereneGraceCount != 0;
                 bool32 hasRainbow = gSideStatuses[GetBattlerSide(cv->battlerAtk)] & SIDE_STATUS_RAINBOW;
                 bool32 hasFlinchEffect = gFieldTimers.terrain == B_TERRAIN_NONE
                                       && gBattleEnvironmentInfo[gBattleEnvironment].secretPowerEffect == MOVE_EFFECT_FLINCH;
 
-                if (hasSereneGrace)
+                for (u32 i = 0; i < sereneGraceCount; i++)
                     chance *= 2;
                 if (hasRainbow && !(hasSereneGrace && hasFlinchEffect))
                     chance *= 2;

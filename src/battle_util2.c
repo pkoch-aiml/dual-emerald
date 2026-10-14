@@ -40,6 +40,7 @@ void AllocateBattleResources(void)
         InitTrainerHillBattleStruct();
 
     gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleHasLearnedAbilities = FALSE;
     gAiBattleData = AllocZeroed(sizeof(*gAiBattleData));
     gAiThinkingStruct = AllocZeroed(sizeof(*gAiThinkingStruct));
     gAiLogicData = AllocZeroed(sizeof(*gAiLogicData));

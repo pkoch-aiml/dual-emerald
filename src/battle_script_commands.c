@@ -3227,6 +3227,7 @@ static void Cmd_switchindataupdate(void)
 
     for (i = 0; i < sizeof(struct BattlePokemon); i++)
         monData[i] = gBattleResources->bufferB[battler][4 + i];
+    NoteBattleLearnedAbility(gBattleMons[battler].learnedAbility);
 
     enum BattleTrainer trainer = GetBattlerTrainer(battler);
     assertf(IsBattlerAlive(battler))

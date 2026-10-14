@@ -3449,6 +3449,7 @@ void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst)
     dst->affectionHearts = GetMonAffectionHearts(src);
     dst->ability = GetAbilityBySpecies(dst->species, dst->abilityNum);
     dst->learnedAbility = GetBattleLearnedAbility(dst->species, GetMonData(src, MON_DATA_LEARNED_ABILITY));
+    NoteBattleLearnedAbility(dst->learnedAbility);
     GetMonData(src, MON_DATA_NICKNAME, nickname);
     StringCopy_Nickname(dst->nickname, nickname);
     GetMonData(src, MON_DATA_OT_NAME, dst->otName);
