@@ -5085,6 +5085,19 @@ bool32 IsLearnedAbilityActive(enum BattlerId battler, enum Ability ability)
     return GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED) == ability;
 }
 
+// Dual Emerald: Contrary applies if an odd number of the battler's live slots hold it, so Contrary
+// held twice cancels out.
+bool32 BattlerHasContraryEffect(enum BattlerId battler)
+{
+    u32 count = 0;
+    for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
+    {
+        if (GetBattlerAbilityInSlot(battler, slot) == ABILITY_CONTRARY)
+            count++;
+    }
+    return count % 2 != 0;
+}
+
 // Slow path of GetLearnedAbilityForCalc (battle_util.h).
 enum Ability GetActiveLearnedAbility(enum BattlerId battler)
 {
@@ -5419,14 +5432,14 @@ enum Stat GetParadoxHighestStatId(enum BattlerId battler)
 
 static void ResetParadoxWeatherStat(enum BattlerId battler)
 {
-    if (gBattleMons[battler].ability == ABILITY_PROTOSYNTHESIS
+    if ((gBattleMons[battler].ability == ABILITY_PROTOSYNTHESIS || gBattleMons[battler].learnedAbility == ABILITY_PROTOSYNTHESIS)
      && !gBattleMons[battler].volatiles.boosterEnergyActivated)
         gBattleMons[battler].volatiles.paradoxBoostedStat = 0;
 }
 
 static void ResetParadoxTerrainStat(enum BattlerId battler)
 {
-    if (gBattleMons[battler].ability == ABILITY_QUARK_DRIVE
+    if ((gBattleMons[battler].ability == ABILITY_QUARK_DRIVE || gBattleMons[battler].learnedAbility == ABILITY_QUARK_DRIVE)
      && !gBattleMons[battler].volatiles.boosterEnergyActivated)
         gBattleMons[battler].volatiles.paradoxBoostedStat = 0;
 }
@@ -9335,10 +9348,10 @@ void SetIllusionMon(struct Pokemon *mon, enum BattlerId battler)
     }
 }
 
-enum ImmunityHealStatusOutcome TryImmunityAbilityHealStatus(enum BattlerId battler)
+static enum ImmunityHealStatusOutcome GetImmunityAbilityCure(enum BattlerId battler, enum Ability ability)
 {
     enum ImmunityHealStatusOutcome outcome = IMMUNITY_NO_EFFECT;
-    switch (GetBattlerAbilityIgnoreMoldBreaker(battler))
+    switch (ability)
     {
     case ABILITY_IMMUNITY:
     case ABILITY_PASTEL_VEIL:
@@ -9407,6 +9420,20 @@ enum ImmunityHealStatusOutcome TryImmunityAbilityHealStatus(enum BattlerId battl
         break;
     default:
         break;
+    }
+    return outcome;
+}
+
+// Dual Emerald: either slot's ability can cure the status it prevents, natural slot first.
+enum ImmunityHealStatusOutcome TryImmunityAbilityHealStatus(enum BattlerId battler)
+{
+    enum ImmunityHealStatusOutcome outcome = IMMUNITY_NO_EFFECT;
+    for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS && outcome == IMMUNITY_NO_EFFECT; slot++)
+    {
+        enum Ability ability = GetBattlerAbilityInSlotInternal(battler, slot, TRUE, FALSE);
+        outcome = GetImmunityAbilityCure(battler, ability);
+        if (outcome != IMMUNITY_NO_EFFECT)
+            gLastUsedAbility = ability;
     }
 
     switch (outcome)
@@ -10156,8 +10183,10 @@ bool32 CanMonParticipateInSkyBattle(struct Pokemon *mon)
     enum Species species = GetMonData(mon, MON_DATA_SPECIES);
     u32 monAbilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM);
     enum Ability ability = GetSpeciesAbility(species, monAbilityNum);
+    enum Ability learnedAbility = GetMonData(mon, MON_DATA_LEARNED_ABILITY);
 
-    bool32 hasLevitateAbility = (ability == ABILITY_LEVITATE || ability == ABILITY_EELEVATE);
+    bool32 hasLevitateAbility = (ability == ABILITY_LEVITATE || ability == ABILITY_EELEVATE
+                              || learnedAbility == ABILITY_LEVITATE || learnedAbility == ABILITY_EELEVATE);
     bool32 isFlyingType = GetSpeciesType(species, 0) == TYPE_FLYING || GetSpeciesType(species, 1) == TYPE_FLYING;
     bool32 monIsValidAndNotEgg = GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES) && !GetMonData(mon, MON_DATA_IS_EGG);
 
@@ -10598,7 +10627,7 @@ bool32 TrySymbiosis(enum BattlerId battler, enum Item itemId, const u8 *nextInst
      && TryTriggerSymbiosis(battler, GetPartnerBattler(battler)))
     {
         BestowItem(GetPartnerBattler(battler), battler);
-        gLastUsedAbility = gBattleMons[GetPartnerBattler(battler)].ability;
+        gLastUsedAbility = ABILITY_SYMBIOSIS;
         gEffectBattler = battler;
         gBattleScripting.battler = gBattlerAbility = GetPartnerBattler(battler);
         if (nextInstr == NULL)

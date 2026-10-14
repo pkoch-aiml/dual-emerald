@@ -606,6 +606,7 @@ struct BattleStruct
     struct EventStates eventState;
     struct PendingScriptAbilitySlot pendingScriptAbilitySlots[MAX_PENDING_SCRIPT_ABILITY_SLOTS];
     u8 pendingScriptAbilitySlotCount;
+    bool8 reactivatingSwitchInAbilities; // Dual Emerald: switchinabilities after Neutralizing Gas leaves skips slots that can't be reactivated.
     u8 dualAbsorbBattler;   // Dual Emerald: target whose two slots both absorb the current move
     u8 dualAbsorbMoveType;
     struct FutureSight futureSight[MAX_BATTLERS_COUNT];

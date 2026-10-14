@@ -4890,6 +4890,11 @@ BattleScript_DualAbilityAbsorb::
 	trydualabsorbslot 1
 	return
 
+@ Dual Emerald: lets switchoutabilities wait for one slot's controller update before the next slot's.
+BattleScript_SwitchOutAbilityWait::
+	waitstate
+	return
+
 BattleScript_MoveStatDrain::
 	pause B_WAIT_TIME_SHORT
 	call BattleScript_AbilityPopUp

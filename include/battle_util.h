@@ -134,6 +134,7 @@ bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, b
 bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability);
 bool32 IsLearnedAbilityActive(enum BattlerId battler, enum Ability ability);
 enum Ability GetActiveLearnedAbility(enum BattlerId battler);
+bool32 BattlerHasContraryEffect(enum BattlerId battler);
 extern bool8 gIgnoreLearnedAbilities;
 extern struct BattlePokemon gBattleMons[MAX_BATTLERS_COUNT];
 

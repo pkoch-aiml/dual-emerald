@@ -97,6 +97,7 @@ enum
 {
     LIST_ITEM_MOVES,
     LIST_ITEM_ABILITY,
+    LIST_ITEM_LEARNED_ABILITY,
     LIST_ITEM_HELD_ITEM,
     LIST_ITEM_PP,
     LIST_ITEM_TYPES,
@@ -233,6 +234,7 @@ static const u8 *GetHoldEffectName(enum HoldEffect holdEffect);
 
 // const rom data
 static const u8 sText_Ability[] = _("Ability");
+static const u8 sText_LearnedAbility[] = _("Learned Ab.");
 static const u8 sText_HeldItem[] = _("Held Item");
 static const u8 sText_HoldEffect[] = _("Hold Effect");
 static const u8 sText_EmptyString[] = _("");
@@ -313,6 +315,7 @@ static const struct ListMenuItem sMainListItems[] =
 {
     {COMPOUND_STRING("Moves"),        LIST_ITEM_MOVES},
     {sText_Ability,                   LIST_ITEM_ABILITY},
+    {sText_LearnedAbility,            LIST_ITEM_LEARNED_ABILITY},
     {sText_HeldItem,                  LIST_ITEM_HELD_ITEM},
     {COMPOUND_STRING("PP"),           LIST_ITEM_PP},
     {COMPOUND_STRING("Types"),        LIST_ITEM_TYPES},
@@ -587,6 +590,7 @@ static const bool8 sHasChangeableEntries[LIST_ITEM_COUNT] =
     [LIST_ITEM_AI_MOVES_PTS] = TRUE,
     [LIST_ITEM_PP] = TRUE,
     [LIST_ITEM_ABILITY] = TRUE,
+    [LIST_ITEM_LEARNED_ABILITY] = TRUE,
     [LIST_ITEM_TYPES] = TRUE,
     [LIST_ITEM_HELD_ITEM] = TRUE,
     [LIST_ITEM_STAT_STAGES] = TRUE,
@@ -1354,6 +1358,7 @@ static void CreateSecondaryListMenu(struct BattleDebugMenu *data)
     switch (data->currentMainListItemId)
     {
     case LIST_ITEM_ABILITY:
+    case LIST_ITEM_LEARNED_ABILITY:
         itemsCount = 1;
         break;
     case LIST_ITEM_HELD_ITEM:
@@ -1481,6 +1486,11 @@ static void PrintSecondaryEntries(struct BattleDebugMenu *data)
         break;
     case LIST_ITEM_ABILITY:
         PadString(gAbilitiesInfo[gBattleMons[data->battlerId].ability].name, text);
+        printer.currentY = printer.y = sSecondaryListTemplate.upText_Y;
+        AddTextPrinter(&printer, 0, NULL);
+        break;
+    case LIST_ITEM_LEARNED_ABILITY:
+        PadString(gAbilitiesInfo[gBattleMons[data->battlerId].learnedAbility].name, text);
         printer.currentY = printer.y = sSecondaryListTemplate.upText_Y;
         AddTextPrinter(&printer, 0, NULL);
         break;
@@ -1883,6 +1893,15 @@ static void SetUpModifyArrows(struct BattleDebugMenu *data)
         data->modifyArrows.modifiedValPtr = &gBattleMons[data->battlerId].ability;
         data->modifyArrows.typeOfVal = VAL_U16;
         data->modifyArrows.currValue = gBattleMons[data->battlerId].ability;
+        break;
+    case LIST_ITEM_LEARNED_ABILITY:
+        data->modifyArrows.minValue = 0;
+        data->modifyArrows.maxValue = ABILITIES_COUNT - 1;
+        data->modifyArrows.maxDigits = 3;
+        data->modifyArrows.modifiedValPtr = &gBattleMons[data->battlerId].learnedAbility;
+        data->modifyArrows.typeOfVal = VAL_U16;
+        data->modifyArrows.currValue = gBattleMons[data->battlerId].learnedAbility;
+        gBattleHasLearnedAbilities = TRUE; // the edited slot may become non-empty
         break;
     case LIST_ITEM_MOVES:
         data->modifyArrows.minValue = 0;

@@ -4992,7 +4992,7 @@ static void TryChangingTurnOrderEffects(struct BattleCalcValues *calcValues, u32
 
     // Battler 1
     // Quick Draw
-    if (ability1 == ABILITY_QUICK_DRAW && !IsBattleMoveStatus(gChosenMoveByBattler[battler1]) && quickDrawRandom[battler1])
+    if (AbilityOrLearned(battler1, ability1, ABILITY_QUICK_DRAW) && !IsBattleMoveStatus(gChosenMoveByBattler[battler1]) && quickDrawRandom[battler1])
         gProtectStructs[battler1].quickDraw = TRUE;
     // Quick Claw and Custap Berry
     if (!gProtectStructs[battler1].quickDraw
@@ -5002,7 +5002,7 @@ static void TryChangingTurnOrderEffects(struct BattleCalcValues *calcValues, u32
 
     // Battler 2
     // Quick Draw
-    if (ability2 == ABILITY_QUICK_DRAW && !IsBattleMoveStatus(gChosenMoveByBattler[battler2]) && quickDrawRandom[battler2])
+    if (AbilityOrLearned(battler2, ability2, ABILITY_QUICK_DRAW) && !IsBattleMoveStatus(gChosenMoveByBattler[battler2]) && quickDrawRandom[battler2])
         gProtectStructs[battler2].quickDraw = TRUE;
     // Quick Claw and Custap Berry
     if (!gProtectStructs[battler2].quickDraw
@@ -5046,7 +5046,7 @@ static void CheckChangingTurnOrderEffects(void)
                 else if (gProtectStructs[battler].quickDraw)
                 {
                     gBattlerAbility = battler;
-                    gLastUsedAbility = gBattleMons[battler].ability;
+                    gLastUsedAbility = ABILITY_QUICK_DRAW;
                     PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
                     RecordAbilityBattle(battler, gLastUsedAbility);
                     BattleScriptExecute(BattleScript_QuickDrawActivation);

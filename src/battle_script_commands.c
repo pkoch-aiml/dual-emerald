@@ -527,7 +527,45 @@ static void Cmd_setstealthrock(void);
 static void Cmd_trysetvolatile(void);
 static void Cmd_trysetmagiccoat(void);
 static void Cmd_trysetsnatch(void);
+static bool32 TrySwitchOutAbility(enum BattlerId battler, enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_NATURAL_CURE:
+        if (gBattleMons[battler].status1 & STATUS1_SLEEP)
+            TryDeactivateSleepClause(battler, gBattlerPartyIndexes[battler]);
+
+        gBattleMons[battler].status1 = 0;
+        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE,
+                                        1u << gBattlerPartyIndexes[battler],
+                                        sizeof(gBattleMons[battler].status1),
+                                        &gBattleMons[battler].status1);
+        MarkBattlerForControllerExec(battler);
+        break;
+    case ABILITY_REGENERATOR:
+    {
+        u32 regenerate = GetNonDynamaxMaxHP(battler) / 3;
+        regenerate += gBattleMons[battler].hp;
+        if (regenerate > gBattleMons[battler].maxHP)
+            regenerate = gBattleMons[battler].maxHP;
+        gBattleMons[battler].hp = regenerate;
+        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_HP_BATTLE,
+                                        1u << gBattlerPartyIndexes[battler],
+                                        sizeof(regenerate),
+                                        &regenerate);
+        MarkBattlerForControllerExec(battler);
+        break;
+    }
+    default:
+        return FALSE;
+    }
+    BattleScriptCall(BattleScript_SwitchOutAbilityWait);
+    return TRUE;
+}
+
 static void Cmd_switchoutabilities(void);
+static bool32 TryScriptAbilitySlots(enum BattlerId battler, AbilitySlotFunc func, const u8 *thisInstr, const u8 *nextInstr);
+static bool32 IsScriptAbilitySlotPending(const u8 *thisInstr, enum BattlerId battler);
 static void Cmd_jumpifhasnohp(void);
 static void Cmd_pickup(void);
 static void Cmd_settypebasedhalvers(void);
@@ -7082,7 +7120,7 @@ static void Cmd_tryswapitems(void)
         {
             gBattlescriptCurrInstr = BattleScript_StickyHoldActivates;
             gBattlerAbility = gBattlerTarget;
-            gLastUsedAbility = gBattleMons[gBattlerTarget].ability;
+            gLastUsedAbility = ABILITY_STICKY_HOLD;
             RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
         }
         // took a while, but all checks passed and items can be safely swapped
@@ -7495,42 +7533,16 @@ static void Cmd_switchoutabilities(void)
         }
     }
 
-    switch (GetBattlerAbility(battler))
-    {
-    case ABILITY_NATURAL_CURE:
-        if (gBattleMons[battler].status1 & STATUS1_SLEEP)
-            TryDeactivateSleepClause(battler, gBattlerPartyIndexes[battler]);
-
-        gBattleMons[battler].status1 = 0;
-        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE,
-                                        1u << gBattlerPartyIndexes[battler],
-                                        sizeof(gBattleMons[battler].status1),
-                                        &gBattleMons[battler].status1);
-        MarkBattlerForControllerExec(battler);
-        break;
-    case ABILITY_REGENERATOR:
-    {
-        u32 regenerate = GetNonDynamaxMaxHP(battler) / 3;
-        regenerate += gBattleMons[battler].hp;
-        if (regenerate > gBattleMons[battler].maxHP)
-            regenerate = gBattleMons[battler].maxHP;
-        BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_HP_BATTLE,
-                                        1u << gBattlerPartyIndexes[battler],
-                                        sizeof(regenerate),
-                                        &regenerate);
-        MarkBattlerForControllerExec(battler);
-        break;
-    }
-    default:
-        break;
-    }
+    // Dual Emerald: each slot's switch-out ability applies, natural first. A slot that updates the
+    // party waits for the controller, then this command runs again for the next slot.
+    if (TryScriptAbilitySlots(battler, TrySwitchOutAbility, (const u8 *)cmd, cmd->nextInstr)
+     && IsScriptAbilitySlotPending((const u8 *)cmd, battler))
+        return;
 
     gBattleStruct->battlerState[battler].notOnField = TRUE;
 
     if (gBattleStruct->battlerState[battler].originalBattlerPartyId == PARTY_SIZE)
         gBattleStruct->battlerState[battler].originalBattlerPartyId = gBattlerPartyIndexes[battler];
-
-    gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
 static void Cmd_jumpifhasnohp(void)
@@ -7553,7 +7565,7 @@ static void Cmd_pickup(void)
     enum Species species;
     enum Item heldItem;
     u8 lvlDivBy10;
-    enum Ability ability;
+    enum Ability ability, learnedAbility;
 
     if (!InBattlePike()) // No items in Battle Pike.
     {
@@ -7567,8 +7579,9 @@ static void Cmd_pickup(void)
                 lvlDivBy10 = 9;
 
             ability = GetSpeciesAbility(species, GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_ABILITY_NUM));
+            learnedAbility = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_LEARNED_ABILITY);
 
-            if (ability == ABILITY_PICKUP
+            if ((ability == ABILITY_PICKUP || learnedAbility == ABILITY_PICKUP)
                 && species != SPECIES_NONE
                 && species != SPECIES_EGG
                 && heldItem == ITEM_NONE
@@ -7595,7 +7608,7 @@ static void Cmd_pickup(void)
                     }
                 }
             }
-            else if (ability == ABILITY_HONEY_GATHER
+            else if ((ability == ABILITY_HONEY_GATHER || learnedAbility == ABILITY_HONEY_GATHER)
                 && species != 0
                 && species != SPECIES_EGG
                 && heldItem == ITEM_NONE)
@@ -9225,7 +9238,7 @@ void BS_TrySymbiosis(void)
     if (TryTriggerSymbiosis(battler, partner))
     {
         BestowItem(partner, battler);
-        gLastUsedAbility = gBattleMons[partner].ability;
+        gLastUsedAbility = ABILITY_SYMBIOSIS;
         gBattleScripting.battler = gBattlerAbility = partner;
         gEffectBattler = battler;
         BattleScriptCall(BattleScript_SymbiosisActivates);
@@ -9867,6 +9880,15 @@ void BS_CheckTeaTimeTargets(void)
 // script command. A fired ability calls its own script, which returns to this command if another
 // slot is still to be tried (so the command runs again and resumes at that slot), or to nextInstr
 // otherwise. If too many commands are pending, the command doesn't wait for later slots.
+// TRUE if TryScriptAbilitySlots just left thisInstr waiting to run again for the battler's next slot.
+static bool32 IsScriptAbilitySlotPending(const u8 *thisInstr, enum BattlerId battler)
+{
+    u32 count = gBattleStruct->pendingScriptAbilitySlotCount;
+    return count > 0
+        && gBattleStruct->pendingScriptAbilitySlots[count - 1].instr == thisInstr
+        && gBattleStruct->pendingScriptAbilitySlots[count - 1].battler == battler;
+}
+
 static bool32 TryScriptAbilitySlots(enum BattlerId battler, AbilitySlotFunc func, const u8 *thisInstr, const u8 *nextInstr)
 {
     struct PendingScriptAbilitySlot *pending = gBattleStruct->pendingScriptAbilitySlots;
@@ -10304,6 +10326,7 @@ void BS_TrySetInfatuation(void)
 
     if (!gBattleMons[gBattlerTarget].volatiles.infatuation
         && gBattleMons[gBattlerTarget].ability != ABILITY_OBLIVIOUS
+        && gBattleMons[gBattlerTarget].learnedAbility != ABILITY_OBLIVIOUS
         && !IsAbilityOnSide(gBattlerTarget, ABILITY_AROMA_VEIL)
         && AreBattlersOfOppositeGender(gBattlerAttacker, gBattlerTarget))
     {
@@ -10449,11 +10472,27 @@ void BS_TryBoosterEnergy(void)
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+static bool32 CanAbilityBeReactivated(enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_IMPOSTER:
+    case ABILITY_NEUTRALIZING_GAS:
+    case ABILITY_AIR_LOCK:
+    case ABILITY_CLOUD_NINE:
+        return FALSE;
+    default:
+        return !gAbilitiesInfo[ability].cantBeSuppressed;
+    }
+}
+
+// Dual Emerald: jumps only if neither slot can be reactivated. Otherwise the following
+// switchinabilities skips the slot that can't.
 void BS_JumpIfAbilityCantBeReactivated(void)
 {
     NATIVE_ARGS(u8 battler, const u8 *jumpInstr);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    enum Ability ability = gBattleMons[battler].ability;
+    enum Ability learnedAbility = gBattleMons[battler].learnedAbility;
 
     // TODO: Already fixed on upcoming. Remove once merged
     if (!IsBattlerAlive(battler))
@@ -10468,20 +10507,15 @@ void BS_JumpIfAbilityCantBeReactivated(void)
         return;
     }
 
-    switch (ability)
+    if (CanAbilityBeReactivated(gBattleMons[battler].ability)
+     || (learnedAbility != ABILITY_NONE && CanAbilityBeReactivated(learnedAbility)))
     {
-    case ABILITY_IMPOSTER:
-    case ABILITY_NEUTRALIZING_GAS:
-    case ABILITY_AIR_LOCK:
-    case ABILITY_CLOUD_NINE:
+        gBattleStruct->reactivatingSwitchInAbilities = TRUE;
+        gBattlescriptCurrInstr = cmd->nextInstr;
+    }
+    else
+    {
         gBattlescriptCurrInstr = cmd->jumpInstr;
-        break;
-    default:
-        if (gAbilitiesInfo[ability].cantBeSuppressed)
-            gBattlescriptCurrInstr = cmd->jumpInstr;
-        else
-            gBattlescriptCurrInstr = cmd->nextInstr;
-        break;
     }
 }
 
@@ -10965,11 +10999,21 @@ static bool32 TrySwitchinAbility(enum BattlerId battler, enum Ability ability)
         || AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, ability, MOVE_NONE, TRUE);
 }
 
+static bool32 TryReactivatedSwitchinAbility(enum BattlerId battler, enum Ability ability)
+{
+    return CanAbilityBeReactivated(ability) && TrySwitchinAbility(battler, ability);
+}
+
 void BS_SwitchinAbilities(void)
 {
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    TryScriptAbilitySlots(battler, TrySwitchinAbility, (const u8 *)cmd, cmd->nextInstr);
+    AbilitySlotFunc func = gBattleStruct->reactivatingSwitchInAbilities ? TryReactivatedSwitchinAbility : TrySwitchinAbility;
+
+    if (TryScriptAbilitySlots(battler, func, (const u8 *)cmd, cmd->nextInstr)
+     && IsScriptAbilitySlotPending((const u8 *)cmd, battler))
+        return;
+    gBattleStruct->reactivatingSwitchInAbilities = FALSE;
 }
 
 void BS_EffectsAfterFormChange(void)

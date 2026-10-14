@@ -204,10 +204,19 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
   - With the setting, the AI thinking-time tests run slightly faster than before 2.6 (doubles, smart: 8.27M cycles vs 8.28M), and all ceilings hold, including `AI_FRAME_CEILING_DOUBLES_NO_FLAGS` at 15 from 2.5.
 - Tests in `test/battle/dual_ability/modifiers.c` (18): Huge Power + Hustle, Huge Power twice, Technician + Sheer Force, Adaptability + Tough Claws, Adaptability twice, Guts twice while burned, Multiscale + Shadow Shield, learned Thick Fat, Swift Swim twice, Chlorophyll + Unburden, Super Luck twice, Prankster + Gale Wings (no stacking; Dark-type immunity kept), Prankster + Triage, Battery + Power Spot on a partner, Friend Guard twice on a partner, learned Dark Aura, and Plus with a partner's learned Minus.
 
-### 2.7 Remaining sites and duplicates
-- Remaining `.ability` reads (messages, battle debug menu, battle TV).
-- Add the `cantBeDoubled` flag to `struct AbilityInfo` (set for every ability with `cantBeSwapped` or `cantBeSuppressed`) and make sure a doubled ability doesn't crash.
-- Ability-*writing* effects (Skill Swap, Trace, Transform and so on) keep writing the natural slot until Milestone 3 gives each one its rule.
+### 2.7 Remaining sites and duplicates ✅
+- **Contrary and Simple** (user's rulings): Contrary in both slots cancels out (an odd number of Contrary slots inverts). This could be a counter to a strong Contrary foe. Simple doubles the change once per slot, so 4x with two (may be reined in later for balance). `CompareStat` counts Contrary across both live slots; callers pass `ABILITY_NONE` to ignore Contrary, as upstream does.
+- **Status cures:** learned Immunity, Limber, Insomnia, Own Tempo, Oblivious and so on now cure their status. `TryImmunityAbilityHealStatus` read only the natural slot.
+- **Switch-out:** Natural Cure and Regenerator apply from each slot, natural first. Regenerator twice heals 1/3 twice. `switchoutabilities` waits for the controller between slots (`BattleScript_SwitchOutAbilityWait`, using the 2.5 pending-slot mechanism).
+- **Intimidate blockers** (Inner Focus, Own Tempo, Oblivious, Scrappy, Guard Dog) check each slot, natural first.
+- **Lightning Rod / Storm Drain redirection** in doubles now sees learned slots.
+- **Neutralizing Gas leaving:** a battler is skipped only if neither slot can be reactivated. Otherwise only the slot that can be reactivated runs, so natural Imposter + learned Intimidate gives Intimidate but not Imposter.
+- Smaller sites: Quick Draw, Oblivious vs. Attract, the Gorilla Tactics choice lock, paradox stat resets, post-battle Pickup/Honey Gather, the Sky Battle Levitate check, and popups for Symbiosis, Sticky Hold and Quick Draw.
+- **Messages** that print a battler's ability name (`{B_ATK_ABILITY}` and so on) use `GetBattlerPopupAbility`, the same rule as popups.
+- **Battle debug menu:** a "Learned Ab." entry views and edits the learned slot. Battle TV needed no changes.
+- **`cantBeDoubled`** added to `struct AbilityInfo` and set on the 31 abilities with `cantBeSwapped` or `cantBeSuppressed` (Zen Mode follows its config expression). Nothing enforces it yet; Milestone 4's acquisition rules will. A doubled Stance Change runs a battle without problems.
+- Ability-*writing* effects (Skill Swap, Trace, Mummy, Transform and so on) still write the natural slot until Milestone 3 gives each its rule. `RemoveAbilityFlags` also stays natural-only for now: if both slots hold Flash Fire and the natural one is overwritten, the boost is cleared.
+- Tests in `test/battle/dual_ability/remaining_sites.c` (13).
 
 ### 2.8 Tests and wrap-up
 - `test/battle/dual_ability/` gets basic tests: learned Intimidate, learned Levitate, stacking, natural-first order, Ability Shield covering both slots, and Mega/Primal overwrite (done in 2.1).
@@ -251,6 +260,10 @@ A first integration of the dual-ability system into the battle AI. The goal is t
 - Switch the score modifiers that check abilities to the slot-aware helpers.
 - Known gap from Option A: when the AI predicts damage or immunities, it reads the target's **live** learned slot. It doesn't apply its own Mold Breaker sanitizing (`AI_GetMoldBreakerSanitizedAbility`) to that slot, and it knows learned abilities it hasn't seen yet.
 - `test/battle/ai/` still passes, plus a few dual-ability sanity tests, e.g. the AI doesn't use Ground moves into a learned Levitate.
+- **Revisit performance here, or in a dedicated optimization pass if that comes first** (user's request):
+  - The Makefile's `--param max-inline-insns-single=1000` for `battle_util.o` (added in 2.6): decide whether to keep it, tune it, or replace it with targeted changes.
+  - Any raised `AI_FRAME_CEILING_*` values in `test/battle/ai/ai_thinking_time.c`; `AI_FRAME_CEILING_DOUBLES_NO_FLAGS` is 15, raised from 14 in 2.5.
+  - `RecordAbilityBattle` can record a learned ability as the natural one (2.6).
 
 ## Milestone 6: Story and content (after the plot rewrite)
 Doubles by default (trainers, wild encounters, the one-mon edge case), trainer teams with learned abilities, real ability lists and Mega/Primal learned abilities, AM placement coordinated with which abilities can be obtained, the Latios/Latias/Jirachi story, unlocking Mega Evolution, further AI tuning, and turning off Z-moves, Dynamax and Tera in config.

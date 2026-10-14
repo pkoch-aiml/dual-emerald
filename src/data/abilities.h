@@ -7,6 +7,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .aiRating = 0,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_STENCH] =
@@ -203,6 +204,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .aiRating = 10,
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
+        .cantBeDoubled = TRUE,
         .breakable = TRUE,
     },
 
@@ -962,6 +964,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = B_UPDATED_ABILITY_DATA >= GEN_5,
     },
 
@@ -1179,6 +1182,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_IMPOSTER] =
@@ -1272,6 +1276,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = B_UPDATED_ABILITY_DATA >= GEN_7,
         .cantBeOverwritten = B_UPDATED_ABILITY_DATA >= GEN_7,
+        .cantBeDoubled = B_UPDATED_ABILITY_DATA >= GEN_7,
         .failsOnImposter = TRUE,
     },
 
@@ -1388,6 +1393,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1545,6 +1551,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1636,6 +1643,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1650,6 +1658,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1663,6 +1672,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1676,6 +1686,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1696,6 +1707,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_QUEENLY_MAJESTY] =
@@ -1792,6 +1804,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1920,6 +1933,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = B_UPDATED_ABILITY_DATA < GEN_9,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -1984,6 +1998,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .breakable = TRUE,
         .failsOnImposter = TRUE,
     },
@@ -2045,6 +2060,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2064,6 +2080,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2126,6 +2143,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_AS_ONE_SHADOW_RIDER] =
@@ -2138,6 +2156,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_LINGERING_AROMA] =
@@ -2225,6 +2244,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2236,6 +2256,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_ELECTROMORPHOSIS] =
@@ -2253,6 +2274,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2264,6 +2286,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2409,6 +2432,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2420,6 +2444,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2431,6 +2456,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2442,6 +2468,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2469,6 +2496,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeTraced = TRUE,
         .cantBeSuppressed = TRUE,
         .cantBeOverwritten = TRUE,
+        .cantBeDoubled = TRUE,
         .failsOnImposter = TRUE,
     },
 
@@ -2480,6 +2508,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
         .breakable = TRUE,
     },
 
@@ -2491,6 +2520,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_POISON_PUPPETEER] =
@@ -2501,6 +2531,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .cantBeCopied = TRUE,
         .cantBeSwapped = TRUE,
         .cantBeTraced = TRUE,
+        .cantBeDoubled = TRUE,
     },
 
     [ABILITY_PIERCING_DRILL] =

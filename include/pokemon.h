@@ -581,6 +581,7 @@ struct AbilityInfo
     u8 cantBeOverwritten:1; // cannot be overwritten by Entrainment, Worry Seed or Simple Beam (but can be by Mummy) - same as cantBeSuppressed except for Truant
     u8 breakable:1; // can be bypassed by Mold Breaker and clones
     u8 failsOnImposter:1; // doesn't work on an Imposter mon; when can we actually use this?
+    u8 cantBeDoubled:1; // Dual Emerald: a battler can't hold it in both ability slots. Set for every ability with cantBeSwapped or cantBeSuppressed.
 };
 
 enum {

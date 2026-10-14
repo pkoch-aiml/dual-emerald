@@ -860,8 +860,8 @@ static bool32 HandleMoveTargetRedirection(struct BattleCalcValues *cv, enum Move
 
     enum Type moveType = GetBattleMoveType(cv->move);
     enum Ability ability = cv->abilities[cv->battlerDef];
-    bool32 currTargetCantAbsorb = ((ability != ABILITY_LIGHTNING_ROD && moveType == TYPE_ELECTRIC)
-                                || (ability != ABILITY_STORM_DRAIN && moveType == TYPE_WATER));
+    bool32 currTargetCantAbsorb = ((moveType == TYPE_ELECTRIC && !AbilityOrLearned(cv->battlerDef, ability, ABILITY_LIGHTNING_ROD))
+                                || (moveType == TYPE_WATER && !AbilityOrLearned(cv->battlerDef, ability, ABILITY_STORM_DRAIN)));
 
     if (currTargetCantAbsorb
      && IsDoubleBattle()
@@ -882,8 +882,8 @@ static bool32 HandleMoveTargetRedirection(struct BattleCalcValues *cv, enum Move
             if ((B_REDIRECT_ABILITY_ALLIES >= GEN_4 || !IsBattlerAlly(cv->battlerAtk, battler))
                 && battler != cv->battlerAtk
                 && battler != cv->battlerDef
-                && ((ability == ABILITY_LIGHTNING_ROD && moveType == TYPE_ELECTRIC)
-                 || (ability == ABILITY_STORM_DRAIN && moveType == TYPE_WATER))
+                && ((moveType == TYPE_ELECTRIC && AbilityOrLearned(battler, ability, ABILITY_LIGHTNING_ROD))
+                 || (moveType == TYPE_WATER && AbilityOrLearned(battler, ability, ABILITY_STORM_DRAIN)))
                 && GetBattlerTurnOrderNum(battler) < redirectorOrderNum
                 && !IsAbilityAndRecord(cv->battlerAtk, abilityAtk, ABILITY_PROPELLER_TAIL)
                 && !IsAbilityAndRecord(cv->battlerAtk, abilityAtk, ABILITY_STALWART))
@@ -3631,7 +3631,7 @@ static enum MoveEndResult MoveEndSymbiosis(struct BattleCalcValues *cv)
         {
             BestowItem(GetPartnerBattler(battler), battler);
             gSpecialStatuses[battler].berryReduced = FALSE;
-            gLastUsedAbility = gBattleMons[GetPartnerBattler(battler)].ability;
+            gLastUsedAbility = ABILITY_SYMBIOSIS;
             gEffectBattler = battler;
             gBattleScripting.battler = gBattlerAbility = GetPartnerBattler(battler);
             BattleScriptPushCursor();
@@ -4279,7 +4279,8 @@ static enum MoveEndResult MoveEndMoveBlock(struct BattleCalcValues *cv)
 
                 gLastUsedItem = gBattleMons[battlerDef].item;
                 gBattleMons[battlerDef].item = ITEM_NONE;
-                if (gBattleMons[battlerDef].ability != ABILITY_GORILLA_TACTICS)
+                if (gBattleMons[battlerDef].ability != ABILITY_GORILLA_TACTICS
+                 && gBattleMons[battlerDef].learnedAbility != ABILITY_GORILLA_TACTICS)
                     gBattleStruct->choicedMove[battlerDef] = MOVE_NONE;
                 CheckSetUnburden(battlerDef);
 
@@ -4342,7 +4343,7 @@ static enum MoveEndResult MoveEndMoveBlock(struct BattleCalcValues *cv)
             {
                 BattleScriptCall(BattleScript_StickyHoldActivatesRet);
                 gBattlerAbility = battlerDef;
-                gLastUsedAbility = gBattleMons[battlerDef].ability;
+                gLastUsedAbility = ABILITY_STICKY_HOLD;
                 RecordAbilityBattle(battlerDef, gLastUsedAbility);
                 return MOVEEND_RESULT_RUN_SCRIPT;
             }
@@ -4917,7 +4918,7 @@ static enum MoveEndResult MoveEndPickpocket(struct BattleCalcValues *cv)
                 gLastUsedAbility = ABILITY_PICKPOCKET;
                 gEffectBattler = cv->battlerAtk;
                 // Battle scripting is super brittle so we shall do the item exchange now (if possible)
-                if (abilityAtk != ABILITY_STICKY_HOLD)
+                if (!AbilityOrLearned(cv->battlerAtk, abilityAtk, ABILITY_STICKY_HOLD))
                 {
                     if (originalAttackerOnField)
                     {

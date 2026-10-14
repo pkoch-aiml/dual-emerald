@@ -638,12 +638,10 @@ static bool32 IsClearAmuletBlocked(struct BattleCalcValues *cv, struct StatChang
     return TRUE;
 }
 
-static bool32 IsIntimidateBlocked(struct BattleCalcValues *cv, struct StatChange *st)
+// One slot's reaction to Intimidate.
+static bool32 IsIntimidateBlockedByAbility(struct BattleCalcValues *cv, struct StatChange *st, enum Ability ability)
 {
-    if (!st->intimidate)
-        return FALSE;
-
-    switch (cv->abilities[cv->battlerDef])
+    switch (ability)
     {
     case ABILITY_INNER_FOCUS:
     case ABILITY_SCRAPPY:
@@ -674,12 +672,25 @@ static bool32 IsIntimidateBlocked(struct BattleCalcValues *cv, struct StatChange
         return FALSE;
     }
 
-    gLastUsedAbility = cv->abilities[cv->battlerDef];
+    gLastUsedAbility = ability;
     gBattlerAbility = cv->battlerDef;
     gBattleScripting.battler = cv->battlerDef;
     MarkStatsAsDone(st, st->stat);
-    RecordAbilityBattle(cv->battlerDef, cv->abilities[cv->battlerDef]);
+    RecordAbilityBattle(cv->battlerDef, ability);
     return TRUE;
+}
+
+// Dual Emerald: the first slot (natural first) whose ability reacts to Intimidate handles it.
+static bool32 IsIntimidateBlocked(struct BattleCalcValues *cv, struct StatChange *st)
+{
+    if (!st->intimidate)
+        return FALSE;
+
+    if (IsIntimidateBlockedByAbility(cv, st, cv->abilities[cv->battlerDef]))
+        return TRUE;
+
+    enum Ability learnedAbility = GetLearnedAbilityForCalc(cv->battlerDef);
+    return learnedAbility != ABILITY_NONE && IsIntimidateBlockedByAbility(cv, st, learnedAbility);
 }
 
 static bool32 IsAbilityBlocked(struct BattleCalcValues *cv, struct StatChange *st)
@@ -799,21 +810,18 @@ static void AdjustStatStage(struct BattleCalcValues *cv, struct StatChange *st)
     if (st->stage == STAT_CHANGE_FORCE_MAX)
         st->stage = 12;
 
-    switch (cv->abilities[cv->battlerDef])
-    {
-    case ABILITY_CONTRARY:
+    // Dual Emerald: Contrary in both slots cancels out; Simple doubles the change once per slot.
+    u32 contraryCount = CountAbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_CONTRARY);
+    u32 simpleCount = CountAbilityOrLearned(cv->battlerDef, cv->abilities[cv->battlerDef], ABILITY_SIMPLE);
+
+    if (contraryCount % 2 != 0)
         st->stage = -1 * st->stage;
-        if (!st->onlyChecking)
-            RecordAbilityBattle(cv->battlerDef, cv->abilities[cv->battlerDef]);
-        break;
-    case ABILITY_SIMPLE:
+    for (u32 i = 0; i < simpleCount; i++)
         st->stage = 2 * st->stage;
-        if (!st->onlyChecking)
-            RecordAbilityBattle(cv->battlerDef, cv->abilities[cv->battlerDef]);
-        break;
-    default:
-        break;
-    }
+
+    if (!st->onlyChecking && (contraryCount != 0 || simpleCount != 0)
+     && (cv->abilities[cv->battlerDef] == ABILITY_CONTRARY || cv->abilities[cv->battlerDef] == ABILITY_SIMPLE))
+        RecordAbilityBattle(cv->battlerDef, cv->abilities[cv->battlerDef]);
 }
 
 static bool32 CanAbilityPreventStatLoss(enum Ability ability)
@@ -969,7 +977,9 @@ bool32 CompareStat(enum BattlerId battler, enum Stat statId, u32 cmpTo, u32 cmpK
 
     // Because this command is used as a way of checking if a stat can be lowered/raised,
     // we need to do some modification at run-time.
-    if (AbilityOrLearned(battler, ability, ABILITY_CONTRARY))
+    // Dual Emerald: callers pass ABILITY_NONE to ignore Contrary; otherwise both live slots count,
+    // since the passed ability may be whichever slot just fired. Contrary twice cancels out.
+    if (ability != ABILITY_NONE && BattlerHasContraryEffect(battler))
     {
         if (cmpKind == CMP_GREATER_THAN)
             cmpKind = CMP_LESS_THAN;
