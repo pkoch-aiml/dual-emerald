@@ -4903,11 +4903,11 @@ bool32 IsMoldBreakerTypeAbility(enum BattlerId battler, enum Ability ability, en
     return FALSE;
 }
 
-static inline bool32 CanBreakThroughAbility(enum BattlerId battlerAtk, enum BattlerId battlerDef, bool32 hasAbilityShield, bool32 ignoreMoldBreaker)
+static inline bool32 CanBreakThroughAbility(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Ability abilityDef, bool32 hasAbilityShield, bool32 ignoreMoldBreaker)
 {
     if (hasAbilityShield || ignoreMoldBreaker || battlerDef == battlerAtk)
         return FALSE;
-    return gBattleStruct->moldBreakerActive && gAbilitiesInfo[gBattleMons[battlerDef].ability].breakable;
+    return gBattleStruct->moldBreakerActive && gAbilitiesInfo[abilityDef].breakable;
 }
 
 enum Ability GetBattlerAbilityNoAbilityShield(enum BattlerId battler)
@@ -4925,40 +4925,90 @@ enum Ability GetBattlerAbility(enum BattlerId battler)
     return GetBattlerAbilityInternal(battler, FALSE, FALSE);
 }
 
+// Natural slot only. Dual Emerald call sites that ask "does this battler have X?" should use
+// BattlerHasAbility instead, which checks both slots.
 enum Ability GetBattlerAbilityInternal(enum BattlerId battler, bool32 ignoreMoldBreaker, bool32 noAbilityShield)
 {
-    bool32 hasAbilityShield = !noAbilityShield && GetBattlerHoldEffectIgnoreAbility(battler) == HOLD_EFFECT_ABILITY_SHIELD;
-    bool32 abilityCantBeSuppressed = gAbilitiesInfo[gBattleMons[battler].ability].cantBeSuppressed;
+    return GetBattlerAbilityInSlotInternal(battler, BATTLER_ABILITY_NATURAL, ignoreMoldBreaker, noAbilityShield);
+}
+
+enum Ability GetBattlerRawAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot)
+{
+    if (slot == BATTLER_ABILITY_LEARNED)
+        return gBattleMons[battler].learnedAbility;
+    return gBattleMons[battler].ability;
+}
+
+// The ability in one slot after suppression (Gastro Acid, Neutralizing Gas) and Mold Breaker.
+// Each slot is judged on its own ability's flags, so e.g. an unsuppressable natural ability stays
+// active while the learned slot is suppressed. Ability Shield protects both slots.
+enum Ability GetBattlerAbilityInSlotInternal(enum BattlerId battler, enum BattlerAbilitySlot slot, bool32 ignoreMoldBreaker, bool32 noAbilityShield)
+{
+    enum Ability ability = GetBattlerRawAbilityInSlot(battler, slot);
+    bool32 hasAbilityShield;
+
+    if (ability == ABILITY_NONE)
+        return ABILITY_NONE;
 
     if (gBattleStruct->battlerState[battler].notOnField || gSpecialStatuses[battler].attackerInParty)
         return ABILITY_NONE;
 
-    if (abilityCantBeSuppressed)
+    hasAbilityShield = !noAbilityShield && GetBattlerHoldEffectIgnoreAbility(battler) == HOLD_EFFECT_ABILITY_SHIELD;
+
+    if (gAbilitiesInfo[ability].cantBeSuppressed)
     {
         // Edge case: Pokémon under the effect of gastro acid transforms into a Pokémon with Comatose (Todo: verify how other unsuppressable abilities behave)
         if (gBattleMons[battler].volatiles.transformed
             && gBattleMons[battler].volatiles.gastroAcid
-            && gBattleMons[battler].ability == ABILITY_COMATOSE)
+            && ability == ABILITY_COMATOSE)
                 return ABILITY_NONE;
 
-        if (CanBreakThroughAbility(gBattlerAttacker, battler, hasAbilityShield, ignoreMoldBreaker))
+        if (CanBreakThroughAbility(gBattlerAttacker, battler, ability, hasAbilityShield, ignoreMoldBreaker))
             return ABILITY_NONE;
 
-        return gBattleMons[battler].ability;
+        return ability;
     }
 
     if (gBattleMons[battler].volatiles.gastroAcid)
         return ABILITY_NONE;
 
+    // Neutralizing Gas suppresses every slot except the one holding Neutralizing Gas itself.
     if (!hasAbilityShield
      && IsNeutralizingGasOnField()
-     && (gBattleMons[battler].ability != ABILITY_NEUTRALIZING_GAS || gBattleMons[battler].volatiles.gastroAcid))
+     && ability != ABILITY_NEUTRALIZING_GAS)
         return ABILITY_NONE;
 
-    if (CanBreakThroughAbility(gBattlerAttacker, battler, hasAbilityShield, ignoreMoldBreaker))
+    if (CanBreakThroughAbility(gBattlerAttacker, battler, ability, hasAbilityShield, ignoreMoldBreaker))
         return ABILITY_NONE;
 
-    return gBattleMons[battler].ability;
+    return ability;
+}
+
+enum Ability GetBattlerAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot)
+{
+    return GetBattlerAbilityInSlotInternal(battler, slot, FALSE, FALSE);
+}
+
+bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, bool32 ignoreMoldBreaker, bool32 noAbilityShield)
+{
+    if (ability == ABILITY_NONE)
+        return FALSE;
+    for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
+    {
+        if (GetBattlerAbilityInSlotInternal(battler, slot, ignoreMoldBreaker, noAbilityShield) == ability)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability)
+{
+    return BattlerHasAbilityInternal(battler, ability, FALSE, FALSE);
+}
+
+bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability ability)
+{
+    return BattlerHasAbilityInternal(battler, ability, TRUE, FALSE);
 }
 
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability)
@@ -9577,6 +9627,7 @@ void CopyMonLevelAndBaseStatsToBattleMon(enum BattlerId battler, struct Pokemon 
 void CopyMonAbilityAndTypesToBattleMon(enum BattlerId battler, struct Pokemon *mon)
 {
     gBattleMons[battler].ability = GetMonAbility(mon);
+    gBattleMons[battler].learnedAbility = GetBattleLearnedAbility(GetMonData(mon, MON_DATA_SPECIES), GetMonData(mon, MON_DATA_LEARNED_ABILITY));
     #if TESTING
     if (gTestRunnerEnabled)
     {

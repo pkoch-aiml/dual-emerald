@@ -2538,6 +2538,13 @@ void Ability_(u32 sourceLine, enum Ability ability)
     }
 }
 
+void LearnedAbility_(u32 sourceLine, enum Ability ability)
+{
+    INVALID_IF(!DATA.currentMon, "LearnedAbility outside of PLAYER/OPPONENT");
+    INVALID_IF(ability >= ABILITIES_COUNT, "Illegal ability id: %d", ability);
+    SetMonData(DATA.currentMon, MON_DATA_LEARNED_ABILITY, &ability);
+}
+
 void Level_(u32 sourceLine, u32 level)
 {
     // TODO: Preserve any explicitly-set stats.

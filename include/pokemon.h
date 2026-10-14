@@ -356,6 +356,7 @@ struct BattlePokemon
     u32 abilityNum:2;
     s8 statStages[NUM_BATTLE_STATS];
     enum Ability ability;
+    enum Ability learnedAbility; // Dual Emerald: the learned ability slot. See GetBattleLearnedAbility.
     enum Type types[3];
     u8 pp[MAX_MON_MOVES];
     u16 hp;
@@ -869,6 +870,7 @@ const struct LevelUpMove *GetSpeciesLevelUpLearnset(enum Species species);
 const u16 *GetSpeciesTeachableLearnset(enum Species species);
 const u16 *GetSpeciesLearnableAbilities(enum Species species);
 enum Ability GetSpeciesFixedLearnedAbility(enum Species species);
+enum Ability GetBattleLearnedAbility(enum Species species, enum Ability storedLearnedAbility);
 bool32 SpeciesLearnsAllAMs(enum Species species);
 const u16 *GetSpeciesEggMoves(enum Species species);
 bool32 SpeciesHasEggMove(enum Species species, enum Move move);

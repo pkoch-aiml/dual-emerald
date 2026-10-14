@@ -320,6 +320,7 @@
  * - Gender(MON_MALE | MON_FEMALE)
  * - Nature(nature)
  * - Ability(ability)
+ * - LearnedAbility(ability) (Dual Emerald; any ability, even one the species can't learn)
  * - Level(level)
  * - MaxHP(n), HP(n), Attack(n), Defense(n), SpAttack(n), SpDefense(n)
  * - Speed(n)
@@ -1035,6 +1036,7 @@ struct moveWithPP {
 #define Gender(gender) Gender_(__LINE__, gender)
 #define Nature(nature) Nature_(__LINE__, nature)
 #define Ability(ability) Ability_(__LINE__, ability)
+#define LearnedAbility(ability) LearnedAbility_(__LINE__, ability)
 #define Level(level) Level_(__LINE__, level)
 #define MaxHP(maxHP) MaxHP_(__LINE__, maxHP)
 #define HP(hp) HP_(__LINE__, hp)
@@ -1079,6 +1081,7 @@ void AILogScores(u32 sourceLine);
 void Gender_(u32 sourceLine, u32 gender);
 void Nature_(u32 sourceLine, u32 nature);
 void Ability_(u32 sourceLine, enum Ability ability);
+void LearnedAbility_(u32 sourceLine, enum Ability ability);
 void Level_(u32 sourceLine, u32 level);
 void MaxHP_(u32 sourceLine, u32 maxHP);
 void HP_(u32 sourceLine, u32 hp);

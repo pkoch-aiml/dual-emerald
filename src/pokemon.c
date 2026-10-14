@@ -3326,6 +3326,16 @@ enum Ability GetSpeciesFixedLearnedAbility(enum Species species)
     return gSpeciesInfo[SanitizeSpeciesId(species)].fixedLearnedAbility;
 }
 
+// The learned ability a battler of this species has in battle: Mega and Primal forms
+// replace the stored learned ability with their fixed one.
+enum Ability GetBattleLearnedAbility(enum Species species, enum Ability storedLearnedAbility)
+{
+    enum Ability fixedLearnedAbility = GetSpeciesFixedLearnedAbility(species);
+    if (fixedLearnedAbility != ABILITY_NONE)
+        return fixedLearnedAbility;
+    return storedLearnedAbility;
+}
+
 bool32 SpeciesLearnsAllAMs(enum Species species)
 {
     return gSpeciesInfo[SanitizeSpeciesId(species)].learnsAllAMs;
@@ -3438,6 +3448,7 @@ void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst)
     dst->isShiny = IsMonShiny(src);
     dst->affectionHearts = GetMonAffectionHearts(src);
     dst->ability = GetAbilityBySpecies(dst->species, dst->abilityNum);
+    dst->learnedAbility = GetBattleLearnedAbility(dst->species, GetMonData(src, MON_DATA_LEARNED_ABILITY));
     GetMonData(src, MON_DATA_NICKNAME, nickname);
     StringCopy_Nickname(dst->nickname, nickname);
     GetMonData(src, MON_DATA_OT_NAME, dst->otName);

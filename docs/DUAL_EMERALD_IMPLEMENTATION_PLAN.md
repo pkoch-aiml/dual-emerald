@@ -127,25 +127,55 @@ Tasks:
 
 ## Milestone 2: Battle engine core (learned abilities take effect)
 
-Most of the engine assumes one ability per battler:
+Most of the engine assumes one ability per battler. Measured on 2026-10-13:
 
-| Pattern | Approx. count |
+| Pattern | Count |
 |---|---|
-| `GetBattlerAbility(...)` calls | ~220 |
-| `case ABILITY_*:` in `battle_util.c` alone | ~250 |
-| `gBattleMons[b].ability` direct accesses | ~100 |
-| `== / != ABILITY_` comparisons across `battle_*.c` | ~460 |
+| `GetBattlerAbility*(...)` calls in `src/battle_*.c` | ~230 (most in `battle_script_commands.c`, `battle_util.c`, `battle_hold_effects.c`, `battle_end_turn.c`) |
+| Reads of cached ability arrays (`ctx->abilities[...]`, `gAiLogicData->abilities[...]`, etc.) | ~620 |
+| `.ability` direct accesses in `src/battle_*.c` | ~100 |
+| `AbilityBattleEffects(...)` call sites | ~40 |
+| Places that write a battler's ability (Skill Swap, Trace, Transform, form changes, ...) | ~25 |
 
-1. Add `enum Ability learnedAbility` to `struct BattlePokemon` and copy it in wherever `ability` is copied (e.g. `src/pokemon.c:3405`).
-2. **Slot-aware core.** Generalize `GetBattlerAbilityInternal` (`src/battle_util.c:4928`) to `GetBattlerAbilityInSlot(battler, slot, ...)`, so suppression, Mold Breaker and Ability Shield are checked separately for each slot. **Ability Shield protects both slots.**
-3. **Query API.** Add `BattlerHasAbility(battler, ability)` and convert "does X have Y?" checks to it file by file. `IsAbilityOnSide` and `IsAbilityOnField` then work automatically.
-4. **Trigger dispatch.** Callers of `AbilityBattleEffects` loop over both slots, **natural slot first**.
-5. **Modifiers.** Rewrite the `switch (ability)` blocks in damage, speed, accuracy, crit and type-effectiveness code to apply both slots.
-6. **Duplicates.** The same ability in both slots is **allowed by default**, and the effects stack where the code naturally stacks them. Add `u8 cantBeDoubled:1` to `struct AbilityInfo`, initially set for every ability with `cantBeSwapped` or `cantBeSuppressed`. Milestone 2 only adds the flag and makes sure a doubled ability doesn't crash. AMs, cross-training and the relearner refuse to create a forbidden duplicate (Milestone 4).
-7. **Popups.** Check that `gLastUsedAbility` and `CreateAbilityPopUp` name the slot that actually fired.
-8. **Mega Evolution and Primal Reversion** overwrite both slots: the natural slot from the form's `.abilities[]`, and the learned slot from `fixedLearnedAbility`. The party mon's real learned ability is untouched and comes back after battle.
-9. **Test DSL.** Add `LearnedAbility(x)` beside `Ability(x)` in `include/test/battle.h`, then add basic tests in `test/battle/dual_ability/`: learned Intimidate, learned Levitate, stacking, natural-first order, Mega and Primal overwrite, and Ability Shield covering both slots.
-10. **Robustness test:** give a battler an illegal learned ability through the test DSL, e.g. Stance Change on a non-Aegislash, run a few turns, and check that the battle finishes without crashing or asserting. The actual behavior doesn't matter.
+The work is split into stages. Each stage builds, passes the full `make check`, and gets its own commit. Until a call site is converted, it keeps reading the natural slot only, so the game always works, just with partial learned-ability support.
+
+### 2.1 Learned slot in battle ✅
+- `struct BattlePokemon` gets `enum Ability learnedAbility`. It's filled from the party mon in `PokemonToBattleMon`, the controllers' `REQUEST_ALL_BATTLE`, and `CopyMonAbilityAndTypesToBattleMon` (used by form changes). All other paths copy those results.
+- `GetBattleLearnedAbility(species, stored)`: Mega and Primal forms use their `fixedLearnedAbility`; everything else uses the stored learned ability. Battle code never writes the party mon's learned ability, so it comes back after battle.
+- Test DSL: `LearnedAbility(x)` sets the party mon's learned ability. Any ability is allowed, even illegal ones.
+- Tests in `test/battle/dual_ability/learned_slot.c`: the default is empty, the slot is set at battle start, it survives switching, switch-in uses the incoming mon's slot, Mega and Primal overwrite it, and other form changes keep it.
+
+### 2.2 Slot-aware core ✅
+- `enum BattlerAbilitySlot { BATTLER_ABILITY_NATURAL, BATTLER_ABILITY_LEARNED }`.
+- `GetBattlerAbilityInSlot(battler, slot)` applies the existing suppression rules (`notOnField`, Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield) to one slot, judged on that slot's own ability flags.
+- `BattlerHasAbility(battler, ability)` (+ `...IgnoreMoldBreaker`): true if either slot has the ability.
+- `GetBattlerAbility(battler)` keeps meaning "natural slot" during the migration, so unconverted call sites behave exactly as before.
+- **Neutralizing Gas (provisional, see the open questions):** the slot holding Neutralizing Gas stays active, and every other slot on the field, including the holder's other slot, is suppressed.
+
+### 2.3 Field-wide queries and Mold Breaker
+- `IsAbilityOnSide`, `IsAbilityOnField`, `IsAbilityPreventingEscape` and similar helpers use `BattlerHasAbility`.
+- Mold Breaker activation (`moldBreakerActive`, `IsMoldBreakerTypeAbility`) checks both of the attacker's slots.
+
+### 2.4 Direct comparisons
+- Convert `GetBattlerAbility(b) == ABILITY_X` and `ability = GetBattlerAbility(b); ... ability == ABILITY_X` to `BattlerHasAbility`, file by file: hold effects, end of turn, move resolution, script commands, util.
+
+### 2.5 Trigger dispatch
+- `AbilityBattleEffects` callers loop over both slots, **natural first**.
+- Events that track "already triggered", such as the switch-in ability, need state for each slot so both slots can fire, as with Intimidate + Drizzle.
+- `gLastUsedAbility` and the popups name the slot that actually fired.
+
+### 2.6 Damage, speed, accuracy and crit modifiers
+- `struct DamageContext` and `struct BattleCalcValues` cache one ability per battler. They gain the learned slot, and the `switch (ability)` modifier blocks run once per slot. Doubled abilities stack wherever the code naturally stacks them.
+
+### 2.7 Remaining sites and duplicates
+- Remaining `.ability` reads (messages, battle debug menu, battle TV).
+- Add the `cantBeDoubled` flag to `struct AbilityInfo` (set for every ability with `cantBeSwapped` or `cantBeSuppressed`) and make sure a doubled ability doesn't crash.
+- Ability-*writing* effects (Skill Swap, Trace, Transform and so on) keep writing the natural slot until Milestone 3 gives each one its rule.
+
+### 2.8 Tests and wrap-up
+- `test/battle/dual_ability/` gets basic tests: learned Intimidate, learned Levitate, stacking, natural-first order, Ability Shield covering both slots, and Mega/Primal overwrite (done in 2.1).
+- **Robustness test:** give a battler an illegal learned ability, e.g. Stance Change on a non-Aegislash, run a few turns, and check that the battle finishes without crashing or asserting. The actual behavior doesn't matter.
+- The AI keeps reading the natural slot until Milestone 5. The robustness tests make sure that doesn't crash.
 
 ## Milestone 3: Ability-interaction rules
 
@@ -206,4 +236,4 @@ Doubles by default (trainers, wild encounters, the one-mon edge case), trainer t
 - AMs live in the TM/HM pocket.
 
 **Open:**
-- Nothing for Milestone 1. New questions will be added here as later milestones come up.
+1. **Neutralizing Gas holder's other slot:** when a battler holds Neutralizing Gas in one slot, is its *other* slot suppressed too? It's implemented provisionally as **yes**, the literal reading of "affects all ability slots" (2.2). The alternative is that the holder is exempt entirely.

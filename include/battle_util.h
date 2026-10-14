@@ -111,6 +111,21 @@ enum Ability GetBattlerAbilityIgnoreMoldBreaker(enum BattlerId battler);
 enum Ability GetBattlerAbilityNoAbilityShield(enum BattlerId battler);
 enum Ability GetBattlerAbilityInternal(enum BattlerId battler, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
 enum Ability GetBattlerAbility(enum BattlerId battler);
+
+// Dual Emerald: each battler has a natural and a learned ability slot.
+enum BattlerAbilitySlot
+{
+    BATTLER_ABILITY_NATURAL,
+    BATTLER_ABILITY_LEARNED,
+    NUM_BATTLER_ABILITY_SLOTS,
+};
+
+enum Ability GetBattlerRawAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot);
+enum Ability GetBattlerAbilityInSlotInternal(enum BattlerId battler, enum BattlerAbilitySlot slot, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
+enum Ability GetBattlerAbilityInSlot(enum BattlerId battler, enum BattlerAbilitySlot slot);
+bool32 BattlerHasAbilityInternal(enum BattlerId battler, enum Ability ability, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
+bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability);
+bool32 BattlerHasAbilityIgnoreMoldBreaker(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnField(enum Ability ability);
 u32 IsAbilityPreventingEscape(enum BattlerId battler);
