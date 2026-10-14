@@ -104,17 +104,19 @@ Tasks:
    - Mew has `learnsAllAMs`
 4. ✅ ROM size: 79.73% → 79.78% of 32 MB (about +17.7 KB).
 
-### 1.4 Summary screen: R swaps the displayed ability
-- `src/pokemon_summary_screen.c`: add `learnedAbility` and a `showLearnedAbility` toggle to the summary struct, and fill `learnedAbility` in the same place as `abilityNum` (line ~1533).
-- `PrintMonAbilityName` and `PrintMonAbilityDescription` (lines ~3529–3536) print whichever slot is selected. An empty learned slot shows "None", with an empty or short description.
-- Add a small label to the ability window so the player knows which slot is showing ("Natural" / "Learned"). This could be a different text color or a short prefix.
-- Input: handle `R_BUTTON` only on the Info page (`PSS_PAGE_INFO`) when it isn't showing an egg, and redraw only the ability window. `Task_HandleInput` (line ~1739) never reads L or R. Start opens the move relearner on the move pages, and Select opens the debug sprite visualizer. R is free in every button mode: the "L=A" option only remaps L. So there's no conflict.
-- The toggle **keeps its value** when the player scrolls to another Pokémon or changes pages, so whichever slot was showing stays showing. It only resets when the summary screen opens.
-- Check that the screen also works in battle and from the PC.
+### 1.4 Summary screen: R swaps the displayed ability ✅
+- `src/pokemon_summary_screen.c`: the summary struct gets `learnedAbility`, filled next to `abilityNum`. The screen data gets a `showLearnedAbility` toggle. It's zeroed when the screen opens, so it starts on Natural.
+- `PrintMonAbilityName` and `PrintMonAbilityDescription` print whichever slot is selected. An empty learned slot shows "None", with the description "No learned ability."
+- A small right-aligned label (`FONT_SMALL`) on the name line shows which slot is displayed: "Natural" or "Learned".
+- Input: `DE_SUMMARY_ABILITY_TOGGLE_BUTTON` (R) works on the Info page when it isn't showing an egg, and redraws only the ability window. `Task_HandleInput` never reads L or R otherwise. R is free in every button mode: the "L=A" option only remaps L. So there's no conflict with Start or Select.
+- The toggle **keeps its value** when the player scrolls to another Pokémon or changes pages. It only resets when the summary screen opens.
+- Still to check by hand: the screen in battle and from the PC, and that the label doesn't overlap long ability names.
 
-### 1.5 Debug menu: Set Learned Ability
-- Add a "Set Learned Ability" entry beside the existing "Set Ability" (`src/debug.c:635`, `data/scripts/debug.inc:475`). Flow: choose a party mon, then choose from that species' learnable pool plus "None", then set `MON_DATA_LEARNED_ABILITY`.
-- An optional second mode allows any ability ID, reusing the number-input ability selector at `src/debug.c:3244`. This makes it possible to test abilities outside the pool and invalid values.
+### 1.5 Debug menu: Set Learned Ability ✅
+- R+Start → Party… → Edit Pokemon → **Set Learned Ability**. Choose a party mon, then choose "None" or an ability from the species' learnable list, and it sets `MON_DATA_LEARNED_ABILITY`. Added in `src/debug.c` (`DebugNative_PushLearnedAbilityChoices`, `DebugNative_SetLearnedAbility`) and `data/scripts/debug.inc` (`Debug_EventScript_SetLearnedAbility`).
+- Menu choice IDs are list indices plus one, not ability IDs, because an ability ID could equal `MULTI_B_PRESSED` (127).
+- Tests in `test/learned_ability.c` cover both functions.
+- **Set Learned (Any)**, in the same submenu: choose a party mon, then enter any ability ID from 0 (None) to `ABILITIES_COUNT - 1` with the number selector. The ability's name updates as you scroll. It ignores the species' list, so it's for testing interactions while designing. Added as `DebugNative_Party_SetAnyLearnedAbility` and `Debug_EventScript_SetAnyLearnedAbility`, modeled on Set Friendship.
 
 ### 1.6 Release check
 - `make check` passes, and a clean build boots.

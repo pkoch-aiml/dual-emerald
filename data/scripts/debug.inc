@@ -486,6 +486,26 @@ Debug_EventScript_SetAbilityClose:
 	releaseall
 	end
 
+Debug_EventScript_SetLearnedAbility::
+	lockall
+	getpartysize
+	goto_if_eq VAR_RESULT, 0, Debug_NoPokemon
+	special ChoosePartyMon
+	goto_if_ge VAR_0x8004, PARTY_SIZE, Debug_EventScript_SetLearnedAbilityClose
+	callnative DebugNative_PushLearnedAbilityChoices
+	dynmultistack 0, 0, FALSE, 6, FALSE, 0, DYN_MULTICHOICE_CB_NONE
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Debug_EventScript_SetLearnedAbilityClose
+	callnative DebugNative_SetLearnedAbility
+Debug_EventScript_SetLearnedAbilityClose:
+	releaseall
+	end
+
+Debug_EventScript_SetAnyLearnedAbility::
+	special ChoosePartyMon
+	callnative DebugNative_Party_SetAnyLearnedAbility
+	releaseall
+	end
+
 Debug_EventScript_SetFriendship::
 	special ChoosePartyMon
 	callnative DebugNative_Party_SetFriendship

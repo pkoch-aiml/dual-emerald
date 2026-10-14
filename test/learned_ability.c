@@ -1,9 +1,11 @@
 #include "global.h"
+#include "malloc.h"
 #include "daycare.h"
 #include "egg_hatch.h"
 #include "event_data.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
+#include "script_menu.h"
 #include "test/overworld_script.h"
 #include "test/test.h"
 #include "constants/characters.h"
@@ -245,4 +247,47 @@ TEST("Mew is compatible with all AMs")
 {
     EXPECT(SpeciesLearnsAllAMs(SPECIES_MEW));
     EXPECT(!SpeciesLearnsAllAMs(SPECIES_MEWTWO));
+}
+
+void DebugNative_PushLearnedAbilityChoices(void);
+void DebugNative_SetLearnedAbility(void);
+
+TEST("Debug: Set Learned Ability offers None plus the species' learnable abilities")
+{
+    const u16 *learnableAbilities = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+    u32 i, count = 0;
+    while (learnableAbilities[count] != ABILITY_NONE)
+        count++;
+
+    ZeroPlayerPartyMons();
+    RUN_OVERWORLD_SCRIPT(givemon SPECIES_WOBBUFFET, 100;);
+    gSpecialVar_0x8004 = 0;
+    DebugNative_PushLearnedAbilityChoices();
+
+    EXPECT_EQ(MultichoiceDynamic_StackSize(), count + 1);
+    EXPECT_EQ(MultichoiceDynamic_PeekElementAt(0)->id, 0);
+    for (i = 0; i < count; i++)
+        EXPECT_EQ(MultichoiceDynamic_PeekElementAt(i + 1)->id, i + 1);
+
+    while (!MultichoiceDynamic_StackEmpty())
+        Free((void *)MultichoiceDynamic_PopElement()->name);
+    MultichoiceDynamic_DestroyStack();
+}
+
+TEST("Debug: Set Learned Ability sets the chosen ability, or clears it for None")
+{
+    const u16 *learnableAbilities = GetSpeciesLearnableAbilities(SPECIES_WOBBUFFET);
+
+    ZeroPlayerPartyMons();
+    RUN_OVERWORLD_SCRIPT(givemon SPECIES_WOBBUFFET, 100; givemon SPECIES_WOBBUFFET, 100;);
+    gSpecialVar_0x8004 = 1;
+
+    gSpecialVar_Result = 1;
+    DebugNative_SetLearnedAbility();
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_LEARNED_ABILITY), learnableAbilities[0]);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_LEARNED_ABILITY), ABILITY_NONE);
+
+    gSpecialVar_Result = 0;
+    DebugNative_SetLearnedAbility();
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_LEARNED_ABILITY), ABILITY_NONE);
 }

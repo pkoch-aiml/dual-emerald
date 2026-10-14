@@ -166,10 +166,12 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u32 OTID; // 0x48
         enum Type teraType;
         u8 mintNature;
+        enum Ability learnedAbility;
     } summary;
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
+    bool8 showLearnedAbility; // Dual Emerald: which ability slot the info page shows. Kept when switching mons.
     bool8 isBoxMon;
     u8 curMonIndex;
     u8 maxMonIndex;
@@ -260,6 +262,7 @@ static void PrintMonOTName(void);
 static void PrintMonOTID(void);
 static void PrintMonAbilityName(void);
 static void PrintMonAbilityDescription(void);
+static void ToggleDisplayedAbility(void);
 static void BufferMonTrainerMemo(void);
 static void PrintMonTrainerMemo(void);
 static void BufferNatureString(void);
@@ -767,6 +770,10 @@ static const TaskFunc sTextPrinterTasks[] =
     [PSS_PAGE_CONTEST_MOVES] = Task_PrintContestMoves
 };
 
+static const u8 sText_NaturalAbility[] = _("Natural");
+static const u8 sText_LearnedAbility[] = _("Learned");
+static const u8 sText_NoLearnedAbilityName[] = _("None");
+static const u8 sText_NoLearnedAbilityDescription[] = _("No learned ability.");
 static const u8 sText_Relearn[] = _("{START_BUTTON} RELEARN"); // future note: don't decap this, because it mimics the summary screen BG graphics which will not get decapped
 
 static const u8 sMemoNatureTextColor[] = _("{COLOR LIGHT_RED}{SHADOW GREEN}");
@@ -1531,6 +1538,7 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
         sum->exp = GetMonData(mon, MON_DATA_EXP);
         sum->level = GetMonData(mon, MON_DATA_LEVEL);
         sum->abilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM);
+        sum->learnedAbility = GetMonData(mon, MON_DATA_LEARNED_ABILITY);
         sum->item = GetMonData(mon, MON_DATA_HELD_ITEM);
         sum->pid = GetMonData(mon, MON_DATA_PERSONALITY);
         sum->sanity = GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG);
@@ -1801,6 +1809,13 @@ static void Task_HandleInput(u8 taskId)
             StopPokemonAnimations();
             PlaySE(SE_SELECT);
             BeginCloseSummaryScreen(taskId);
+        }
+        else if (JOY_NEW(DE_SUMMARY_ABILITY_TOGGLE_BUTTON)
+              && sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO
+              && !sMonSummaryScreen->summary.isEgg)
+        {
+            PlaySE(SE_SELECT);
+            ToggleDisplayedAbility();
         }
         else if (DEBUG_POKEMON_SPRITE_VISUALIZER && JOY_NEW(SELECT_BUTTON) && !gMain.inBattle)
         {
@@ -3524,16 +3539,43 @@ static void PrintMonOTID(void)
     }
 }
 
+static enum Ability GetDisplayedAbility(void)
+{
+    if (sMonSummaryScreen->showLearnedAbility)
+        return sMonSummaryScreen->summary.learnedAbility;
+    return GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
+}
+
 static void PrintMonAbilityName(void)
 {
-    enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+    u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+    enum Ability ability = GetDisplayedAbility();
+    const u8 *slotLabel = sMonSummaryScreen->showLearnedAbility ? sText_LearnedAbility : sText_NaturalAbility;
+
+    if (sMonSummaryScreen->showLearnedAbility && ability == ABILITY_NONE)
+        PrintTextOnWindow(windowId, sText_NoLearnedAbilityName, 0, 1, 0, 1);
+    else
+        PrintTextOnWindow(windowId, gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+    PrintTextOnWindowWithFont(windowId, slotLabel, GetStringRightAlignXOffset(FONT_SMALL, slotLabel, WindowWidthPx(windowId)), 1, 0, 0, FONT_SMALL);
 }
 
 static void PrintMonAbilityDescription(void)
 {
-    enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+    u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+    enum Ability ability = GetDisplayedAbility();
+
+    if (sMonSummaryScreen->showLearnedAbility && ability == ABILITY_NONE)
+        PrintTextOnWindowToFit(windowId, sText_NoLearnedAbilityDescription, 0, 17, 0, 0);
+    else
+        PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+}
+
+static void ToggleDisplayedAbility(void)
+{
+    sMonSummaryScreen->showLearnedAbility = !sMonSummaryScreen->showLearnedAbility;
+    FillWindowPixelBuffer(sMonSummaryScreen->windowIds[PSS_DATA_WINDOW_INFO_ABILITY], PIXEL_FILL(0));
+    PrintMonAbilityName();
+    PrintMonAbilityDescription();
 }
 
 static void BufferMonTrainerMemo(void)

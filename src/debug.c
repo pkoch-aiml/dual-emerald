@@ -46,6 +46,7 @@
 #include "region_map.h"
 #include "rtc.h"
 #include "script.h"
+#include "script_menu.h"
 #include "script_pokemon_util.h"
 #include "sound.h"
 #include "strings.h"
@@ -376,6 +377,8 @@ extern const u8 Debug_EventScript_InflictStatus1[];
 extern const u8 Debug_EventScript_KoPokemon[];
 extern const u8 Debug_EventScript_SetHiddenNature[];
 extern const u8 Debug_EventScript_SetAbility[];
+extern const u8 Debug_EventScript_SetLearnedAbility[];
+extern const u8 Debug_EventScript_SetAnyLearnedAbility[];
 extern const u8 Debug_EventScript_SetFriendship[];
 extern const u8 Debug_EventScript_Script_1[];
 extern const u8 Debug_EventScript_Script_2[];
@@ -633,6 +636,8 @@ static const struct DebugMenuOption sDebugMenu_Actions_EditPokemon[] =
     { COMPOUND_STRING("Set Hidden Nature"),  DebugAction_ExecuteScript, Debug_EventScript_SetHiddenNature },
     { COMPOUND_STRING("Set Friendship"),     DebugAction_ExecuteScript, Debug_EventScript_SetFriendship },
     { COMPOUND_STRING("Set Ability"),        DebugAction_ExecuteScript, Debug_EventScript_SetAbility },
+    { COMPOUND_STRING("Set Learned Ability"), DebugAction_ExecuteScript, Debug_EventScript_SetLearnedAbility },
+    { COMPOUND_STRING("Set Learned (Any)"),  DebugAction_ExecuteScript, Debug_EventScript_SetAnyLearnedAbility },
     { NULL }
 };
 
@@ -4633,6 +4638,39 @@ void DebugNative_GetAbilityNames(void)
     StringCopy(gStringVar3, gAbilitiesInfo[GetAbilityBySpecies(species, 2)].name);
 }
 
+static void PushLearnedAbilityChoice(const u8 *name, u32 id)
+{
+    struct ListMenuItem item;
+    u8 *nameBuffer = Alloc(ABILITY_NAME_LENGTH + 1);
+    StringCopy(nameBuffer, name);
+    item.name = nameBuffer;
+    item.id = id;
+    MultichoiceDynamic_PushElement(item);
+}
+
+// Choice IDs are indices into the species' learnable ability list plus one, with 0 meaning "None".
+// Ability IDs aren't used directly because one of them could equal MULTI_B_PRESSED.
+void DebugNative_PushLearnedAbilityChoices(void)
+{
+    enum Species species = GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_SPECIES);
+    const u16 *learnableAbilities = GetSpeciesLearnableAbilities(species);
+    u32 i;
+
+    PushLearnedAbilityChoice(COMPOUND_STRING("None"), 0);
+    for (i = 0; learnableAbilities[i] != ABILITY_NONE; i++)
+        PushLearnedAbilityChoice(gAbilitiesInfo[learnableAbilities[i]].name, i + 1);
+}
+
+void DebugNative_SetLearnedAbility(void)
+{
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004];
+    enum Ability learnedAbility = ABILITY_NONE;
+
+    if (gSpecialVar_Result != 0)
+        learnedAbility = GetSpeciesLearnableAbilities(GetMonData(mon, MON_DATA_SPECIES))[gSpecialVar_Result - 1];
+    SetMonData(mon, MON_DATA_LEARNED_ABILITY, &learnedAbility);
+}
+
 #define tPartyId               data[6]
 
 static void DebugNativeStep_InitAfterPartyMenu(u8 taskId)
@@ -4696,6 +4734,58 @@ void DebugNative_Party_SetFriendship(void)
 }
 
 #undef tFriendship
+
+// Sets a party mon's learned ability to any ability ID, ignoring its species' learnable list.
+static void DebugSelectionStep_UpdateAnyLearnedAbility(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    ConvertIntToDecimalStringN(gStringVar3, gTasks[taskId].tInput, STR_CONV_MODE_LEADING_ZEROS, digits);
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Learned: {STR_VAR_3}"));
+    if (gTasks[taskId].tInput == ABILITY_NONE)
+        StringCopy(gStringVar2, COMPOUND_STRING("None"));
+    else
+        StringCopy(gStringVar2, gAbilitiesInfo[gTasks[taskId].tInput].name);
+    StringCopy(gStringVar3, COMPOUND_STRING(""));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static void DebugSelection_SetAnyLearnedAbility_OnInit(u8 taskId)
+{
+    DebugNativeStep_InitAfterPartyMenu(taskId);
+    DebugSelection_SetData(taskId, 0, GetMonData(&gParties[B_TRAINER_PLAYER][gTasks[taskId].tPartyId], MON_DATA_LEARNED_ABILITY));
+}
+
+static bool32 DebugSelection_SetAnyLearnedAbility_OnComplete(u8 taskId)
+{
+    enum Ability learnedAbility = DebugSelection_GetData(taskId, 0);
+    SetMonData(&gParties[B_TRAINER_PLAYER][gTasks[taskId].tPartyId], MON_DATA_LEARNED_ABILITY, &learnedAbility);
+    DebugNativeStep_CloseDebugWindow(taskId);
+    return TRUE;
+}
+
+static const struct DebugSelectionStep sAnyLearnedAbilitySelectionStep = {
+    .stepUpdate = DebugSelectionStep_UpdateAnyLearnedAbility,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = ABILITY_NONE,
+    .maxValue = ABILITIES_COUNT - 1,
+    .digits = 3
+};
+
+static const struct DebugSelection sAnyLearnedAbilitySelection = {
+    .onInit = DebugSelection_SetAnyLearnedAbility_OnInit,
+    .onCancel = DebugNativeStep_CloseDebugWindow,
+    .onComplete = DebugSelection_SetAnyLearnedAbility_OnComplete,
+    .steps = {&sAnyLearnedAbilitySelectionStep},
+    .maxSteps = 1,
+};
+
+void DebugNative_Party_SetAnyLearnedAbility(void)
+{
+    if (gSpecialVar_0x8004 < PARTY_SIZE)
+    {
+        u32 taskId = CreateTask(DebugNativeStep_DelayedSelection, 1);
+        SetWordTaskArg(taskId, DEBUG_SELECTION_PTR_ARG, (u32) &sAnyLearnedAbilitySelection);
+    }
+}
 
 static void DebugSelectionStep_UpdatePokerusStrain(u8 taskId, u8 digits, u32 min, u32 max)
 {
