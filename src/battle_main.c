@@ -3555,6 +3555,7 @@ static void TryDoEventsBeforeFirstTurn(void)
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler = 0;
         gBattleStruct->eventState.endTurnAbilitySlot = 0;
+        gBattleStruct->pendingScriptAbilitySlotCount = 0;
         gBattleScripting.moveendState = 0;
         gBattleStruct->eventState.moveEndAbilitySlot = 0;
         gBattleStruct->eventState.faintedAction = 0;

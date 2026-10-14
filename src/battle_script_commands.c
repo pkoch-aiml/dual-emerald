@@ -1986,7 +1986,7 @@ static void Cmd_jumpifability(void)
     {
     default:
         battler = GetBattlerForBattleScript(cmd->battler);
-        if (GetBattlerAbility(battler) == ability)
+        if (BattlerHasAbility(battler, ability))
             hasAbility = TRUE;
         break;
     case BS_ATTACKER_SIDE:
@@ -9860,32 +9860,90 @@ void BS_CheckTeaTimeTargets(void)
         gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+// Dual Emerald: runs func for each of the battler's ability slots, natural first, from a battle
+// script command. A fired ability calls its own script, which returns to this command if another
+// slot is still to be tried (so the command runs again and resumes at that slot), or to nextInstr
+// otherwise. If too many commands are pending, the command doesn't wait for later slots.
+static bool32 TryScriptAbilitySlots(enum BattlerId battler, AbilitySlotFunc func, const u8 *thisInstr, const u8 *nextInstr)
+{
+    struct PendingScriptAbilitySlot *pending = gBattleStruct->pendingScriptAbilitySlots;
+    u8 *count = &gBattleStruct->pendingScriptAbilitySlotCount;
+    u32 depth = gBattleResources->battleScriptsStack->size;
+    u32 startSlot = BATTLER_ABILITY_NATURAL;
+
+    if (*count > 0
+     && pending[*count - 1].instr == thisInstr
+     && pending[*count - 1].battler == battler
+     && pending[*count - 1].depth == depth)
+    {
+        startSlot = pending[--(*count)].slot;
+    }
+
+    for (u32 slot = startSlot; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
+    {
+        enum Ability ability = (slot == BATTLER_ABILITY_NATURAL) ? GetBattlerAbility(battler) : GetBattlerAbilityInSlot(battler, slot);
+        bool32 resume = FALSE;
+
+        if (slot != BATTLER_ABILITY_NATURAL && ability == ABILITY_NONE)
+            continue;
+        for (u32 next = slot + 1; next < NUM_BATTLER_ABILITY_SLOTS; next++)
+        {
+            if (GetBattlerRawAbilityInSlot(battler, next) != ABILITY_NONE)
+                resume = TRUE;
+        }
+        if (*count >= MAX_PENDING_SCRIPT_ABILITY_SLOTS)
+            resume = FALSE;
+
+        gBattlescriptCurrInstr = resume ? thisInstr : nextInstr;
+        if (func(battler, ability))
+        {
+            if (resume)
+                pending[(*count)++] = (struct PendingScriptAbilitySlot) { .instr = thisInstr, .battler = battler, .depth = depth, .slot = slot + 1 };
+            return TRUE;
+        }
+    }
+    gBattlescriptCurrInstr = nextInstr;
+    return FALSE;
+}
+
+static bool32 TryWindRiderPowerAbility(enum BattlerId battler, enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_WIND_RIDER:
+        // Starting Status Tailwind causes the Wind Rider boost to go off twice
+        if (gBattleStruct->eventState.beforeFirstTurn != FIRST_TURN_EVENTS_STARTING_STATUS)
+            return AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, ABILITY_WIND_RIDER, MOVE_NONE, TRUE);
+        return FALSE;
+    case ABILITY_WIND_POWER:
+        gBattlerAbility = battler;
+        gLastUsedAbility = ABILITY_WIND_POWER;
+        BattleScriptCall(BattleScript_WindPowerActivates);
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 void BS_TryWindRiderPower(void)
 {
     NATIVE_ARGS(u8 battler, const u8 *failInstr);
 
-    gBattlescriptCurrInstr = cmd->nextInstr;
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    enum Ability ability = GetBattlerAbility(battler);
     if (IsBattlerAlive(battler) && IsBattlerAlly(battler, gBattlerAttacker))
-    {
-        switch (ability)
-        {
-        case ABILITY_WIND_RIDER:
-            // Starting Status Tailwind causes the Wind Rider boost to go off twice
-            if (gBattleStruct->eventState.beforeFirstTurn != FIRST_TURN_EVENTS_STARTING_STATUS)
-            {
-                AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, ABILITY_WIND_RIDER, MOVE_NONE, TRUE);
-            }
-            break;
-        case ABILITY_WIND_POWER:
-            gBattlerAbility = battler;
-            BattleScriptCall(BattleScript_WindPowerActivates);
-            break;
-        default:
-            break;
-        }
-    }
+        TryScriptAbilitySlots(battler, TryWindRiderPowerAbility, (const u8 *)cmd, cmd->nextInstr);
+    else
+        gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
+static bool32 TryWeatherChangeAbility(enum BattlerId battler, enum Ability ability)
+{
+    return AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, battler, ability, MOVE_NONE, TRUE);
+}
+
+static bool32 TryTerrainChangeAbility(enum BattlerId battler, enum Ability ability)
+{
+    return AbilityBattleEffects(ABILITYEFFECT_ON_TERRAIN, battler, ability, MOVE_NONE, TRUE);
 }
 
 void BS_ActivateWeatherChangeAbilities(void)
@@ -9893,8 +9951,7 @@ void BS_ActivateWeatherChangeAbilities(void)
     NATIVE_ARGS(u8 battler);
 
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    gBattlescriptCurrInstr = cmd->nextInstr;
-    AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE);
+    TryScriptAbilitySlots(battler, TryWeatherChangeAbility, (const u8 *)cmd, cmd->nextInstr);
 }
 
 void BS_ActivateTerrainChangeAbilities(void)
@@ -9902,8 +9959,7 @@ void BS_ActivateTerrainChangeAbilities(void)
     NATIVE_ARGS(u8 battler);
 
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    gBattlescriptCurrInstr = cmd->nextInstr;
-    AbilityBattleEffects(ABILITYEFFECT_ON_TERRAIN, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE);
+    TryScriptAbilitySlots(battler, TryTerrainChangeAbility, (const u8 *)cmd, cmd->nextInstr);
 }
 
 void BS_ResetTerrainAbilityFlags(void)
@@ -10401,15 +10457,25 @@ void BS_TryActivateAbilityShield(void)
 {
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    enum Ability ability = GetBattlerAbility(battler);
+    bool32 shielded = FALSE;
 
     gBattlescriptCurrInstr = cmd->nextInstr;
 
-    if (ability != ABILITY_NONE // if ability would be negated by breaking effects Ability Shield doesn't print message
-     && ability == GetBattlerAbilityInternal(battler, TRUE, TRUE))
-        return;
+    // Dual Emerald: Ability Shield protects both slots, so it announces itself if either slot was protected.
+    for (enum BattlerAbilitySlot slot = 0; slot < NUM_BATTLER_ABILITY_SLOTS; slot++)
+    {
+        enum Ability ability = GetBattlerAbilityInSlot(battler, slot);
 
-    if (GetBattlerAbilityNoAbilityShield(battler) != ability)
+        if (slot != BATTLER_ABILITY_NATURAL && GetBattlerRawAbilityInSlot(battler, slot) == ABILITY_NONE)
+            continue;
+        if (ability != ABILITY_NONE // if ability would be negated by breaking effects Ability Shield doesn't print message
+         && ability == GetBattlerAbilityInSlotInternal(battler, slot, TRUE, TRUE))
+            continue;
+        if (GetBattlerAbilityInSlotInternal(battler, slot, FALSE, TRUE) != ability)
+            shielded = TRUE;
+    }
+
+    if (shielded)
     {
         gLastUsedItem = gBattleMons[battler].item;
         RecordItemEffectBattle(battler, GetItemHoldEffect(gLastUsedItem));
@@ -10854,22 +10920,24 @@ void BS_StatTextBuffer(void)
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+static bool32 TrySwitchinAbility(enum BattlerId battler, enum Ability ability)
+{
+    return AbilityBattleEffects(ABILITYEFFECT_TERA_SHIFT, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_NEUTRALIZINGGAS, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_UNNERVE, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_IMMUNITY, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_DEPENDS_ON_ALLY, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_ON_TERRAIN, battler, ability, MOVE_NONE, TRUE)
+        || AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, ability, MOVE_NONE, TRUE);
+}
+
 void BS_SwitchinAbilities(void)
 {
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    enum Ability ability = GetBattlerAbility(battler);
-    gBattlescriptCurrInstr = cmd->nextInstr;
-    if (AbilityBattleEffects(ABILITYEFFECT_TERA_SHIFT, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_NEUTRALIZINGGAS, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_UNNERVE, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_IMMUNITY, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_DEPENDS_ON_ALLY, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_ON_TERRAIN, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, ability, MOVE_NONE, TRUE))
-        return;
+    TryScriptAbilitySlots(battler, TrySwitchinAbility, (const u8 *)cmd, cmd->nextInstr);
 }
 
 void BS_EffectsAfterFormChange(void)
@@ -10896,7 +10964,7 @@ void BS_EffectsAfterFormChange(void)
     for (u32 i = 0; i < gBattlersCount; i++)
     {
         enum BattlerId battler = gBattlersByRawSpeed[i];
-        if (AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, cv.abilities[battler], 0, TRUE))
+        if (TryAbilityEffectsAnySlot(ABILITYEFFECT_OPPORTUNIST, battler, cv.abilities[battler], 0, TRUE))
             return;
     }
 
@@ -10913,14 +10981,16 @@ void BS_EffectsAfterFormChange(void)
         return;
 }
 
+static bool32 TryFormChangeAbility(enum BattlerId battler, enum Ability ability)
+{
+    return AbilityBattleEffects(ABILITYEFFECT_ON_FORM_CHANGE, battler, ability, MOVE_NONE, TRUE);
+}
+
 void BS_AbilityOnFormChange(void)
 {
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
-    enum Ability ability = GetBattlerAbility(battler);
-    gBattlescriptCurrInstr = cmd->nextInstr;
-    if (AbilityBattleEffects(ABILITYEFFECT_ON_FORM_CHANGE, battler, ability, MOVE_NONE, TRUE))
-        return;
+    TryScriptAbilitySlots(battler, TryFormChangeAbility, (const u8 *)cmd, cmd->nextInstr);
 }
 
 void BS_InstantHpDrop(void)

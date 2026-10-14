@@ -165,3 +165,34 @@ SINGLE_BATTLE_TEST("Learned Speed Boost raises Speed at the end of the turn")
         EXPECT_EQ(player->statStages[STAT_SPEED], DEFAULT_STAT_STAGE + 1);
     }
 }
+
+SINGLE_BATTLE_TEST("Learned Wind Rider raises Attack when its side sets up Tailwind")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_WIND_RIDER); }
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_TAILWIND); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_TAILWIND, opponent);
+        ABILITY_POPUP(opponent, ABILITY_WIND_RIDER);
+        MESSAGE("The opposing Wobbuffet's Attack rose!");
+    } THEN {
+        EXPECT_EQ(opponent->statStages[STAT_ATK], DEFAULT_STAT_STAGE + 1);
+    }
+}
+
+SINGLE_BATTLE_TEST("Learned Mimicry changes the battler's type when terrain is set")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); LearnedAbility(ABILITY_MIMICRY); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_ELECTRIC_TERRAIN); }
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_MIMICRY);
+        MESSAGE("The opposing Wobbuffet's type changed to Electric!");
+    } THEN {
+        EXPECT_EQ(opponent->types[0], TYPE_ELECTRIC);
+    }
+}

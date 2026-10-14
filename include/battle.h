@@ -584,7 +584,18 @@ struct EventStates
     u8 switchInAbilitySlot;
     u8 moveEndAbilitySlot;
     u8 endTurnAbilitySlot;
-    u8 scriptAbilitySlot;
+};
+
+// Dual Emerald: a battle script command waiting to run again for its battler's next ability slot,
+// once the script of the slot that fired returns to it. Keyed by the command's address, the battler,
+// and the battle script stack depth, so nested commands of the same kind don't interfere.
+#define MAX_PENDING_SCRIPT_ABILITY_SLOTS 8
+struct PendingScriptAbilitySlot
+{
+    const u8 *instr;
+    u8 battler;
+    u8 depth;
+    u8 slot;
 };
 
 // Cleared at the beginning of the battle. Fields need to be cleared when needed manually otherwise.
@@ -593,6 +604,8 @@ struct BattleStruct
     struct BattlerState battlerState[MAX_BATTLERS_COUNT];
     struct PartyState partyState[MAX_BATTLE_TRAINERS][PARTY_SIZE];
     struct EventStates eventState;
+    struct PendingScriptAbilitySlot pendingScriptAbilitySlots[MAX_PENDING_SCRIPT_ABILITY_SLOTS];
+    u8 pendingScriptAbilitySlotCount;
     struct FutureSight futureSight[MAX_BATTLERS_COUNT];
     struct Wish wish[MAX_BATTLERS_COUNT];
     u16 moveTarget[MAX_BATTLERS_COUNT];
