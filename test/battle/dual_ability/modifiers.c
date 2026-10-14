@@ -242,28 +242,19 @@ SINGLE_BATTLE_TEST("Natural Prankster and learned Gale Wings don't stack: Tailwi
     }
 }
 
-SINGLE_BATTLE_TEST("Natural Prankster and learned Gale Wings: a Flying-type status move isn't Prankster-boosted, so it affects Dark types")
+SINGLE_BATTLE_TEST("Natural Prankster and learned Gale Wings: a Flying-type status move still doesn't affect Dark types")
 {
-    bool32 learnedGaleWings;
-
-    PARAMETRIZE { learnedGaleWings = FALSE; }
-    PARAMETRIZE { learnedGaleWings = TRUE; }
-
     GIVEN {
         WITH_CONFIG(B_PRANKSTER_DARK_TYPES, GEN_7);
         ASSUME(GetMoveType(MOVE_FEATHER_DANCE) == TYPE_FLYING);
         ASSUME(GetMoveCategory(MOVE_FEATHER_DANCE) == DAMAGE_CATEGORY_STATUS);
         ASSUME(GetSpeciesType(SPECIES_UMBREON, 0) == TYPE_DARK);
-        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_PRANKSTER); LearnedAbility(learnedGaleWings ? ABILITY_GALE_WINGS : ABILITY_NONE); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_PRANKSTER); LearnedAbility(ABILITY_GALE_WINGS); }
         OPPONENT(SPECIES_UMBREON);
     } WHEN {
         TURN { MOVE(player, MOVE_FEATHER_DANCE); }
     } SCENE {
-        if (learnedGaleWings) {
-            ANIMATION(ANIM_TYPE_MOVE, MOVE_FEATHER_DANCE, player);
-        } else {
-            NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_FEATHER_DANCE, player);
-        }
+        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_FEATHER_DANCE, player);
     }
 }
 

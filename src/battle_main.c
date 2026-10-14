@@ -4527,8 +4527,8 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
     else
     {
         // Dual Emerald: priority bonuses don't stack; the move gets the largest one that applies.
-        // Prankster only counts when nothing else gives as much, so a tie doesn't saddle the move
-        // with Prankster's Dark-type immunity.
+        // Prankster's Dark-type immunity applies to a holder's status moves even when another
+        // ability gives the same or a larger boost.
         s32 bonus = 0;
 
         if (AbilityOrLearned(battler, ability, ABILITY_GALE_WINGS)
@@ -4543,10 +4543,10 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
         if (AbilityOrLearned(battler, ability, ABILITY_TRIAGE) && IsHealingMove(move))
             bonus = max(bonus, 3);
 
-        if (bonus < 1 && IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
+        if (IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
         {
             gProtectStructs[battler].pranksterElevated = 1;
-            bonus = 1;
+            bonus = max(bonus, 1);
         }
 
         priority += bonus;
