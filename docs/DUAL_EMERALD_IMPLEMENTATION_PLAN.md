@@ -225,7 +225,7 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
 - **Popups naming the natural ability instead of the learned one that acted.** Fixed for Levitate/Eelevate, Wonder Guard/Telepathy, Overcoat (powder moves), the status blockers in `CanSetNonVolatileStatus` (Immunity, Limber, Water Veil/Water Bubble, Thermal Exchange, Vital Spirit/Insomnia, Magma Armor, Comatose/Purifying Salt, Leaf Guard, Shields Down), and end-of-turn Emergency Exit/Wimp Out. A parametrized test covers four status blockers.
 - The AI still reads the natural slot until Milestone 5; the robustness sweep runs the smart AI against every learned ability without problems.
 
-## Milestone 3: Ability-interaction rules ✅ Complete
+## Milestone 3: Ability-interaction rules ✅ Complete, tagged `v0.3-ability-interactions`
 
 **Decisions beyond the design doc** (user, 2026-10-14):
 - Mummy/Lingering Aroma in the learned slot fills an attacker's *empty* learned slot.
