@@ -9939,7 +9939,10 @@ static bool32 TryScriptAbilitySlots(enum BattlerId battler, AbilitySlotFunc func
             resume = FALSE;
 
         gBattlescriptCurrInstr = resume ? thisInstr : nextInstr;
-        if (func(battler, ability))
+        gBattleStruct->firingAbilitySlot = slot;
+        bool32 fired = func(battler, ability);
+        gBattleStruct->firingAbilitySlot = BATTLER_ABILITY_NATURAL;
+        if (fired)
         {
             if (resume)
                 pending[(*count)++] = (struct PendingScriptAbilitySlot) { .instr = thisInstr, .battler = battler, .depth = depth, .slot = slot + 1 };
@@ -9971,6 +9974,14 @@ static bool32 TryWindRiderPowerAbility(enum BattlerId battler, enum Ability abil
 
 // Dual Emerald: runs one slot's absorb effect from BattleScript_DualAbilityAbsorb. Each slot's
 // effect is prepared just before its own script runs, so the two don't overwrite each other.
+// Dual Emerald: GetBattlerPopupAbility names the learned slot when gLastUsedAbility matches it.
+void BS_SetLastUsedAbilityToLearned(void)
+{
+    NATIVE_ARGS(u8 battler);
+    gLastUsedAbility = gBattleMons[GetBattlerForBattleScript(cmd->battler)].learnedAbility;
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
 void BS_TryDualAbsorbSlot(void)
 {
     NATIVE_ARGS(u8 slot);

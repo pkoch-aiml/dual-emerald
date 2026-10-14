@@ -242,8 +242,11 @@ The AI therefore sees real learned slots until Milestone 5. Pokémon not on the 
   - `RemoveAbilityFlags` keeps flags the learned slot still needs. The new `RemoveLearnedAbilityFlags` does the same for the learned slot, and `RemoveRuinAbilityFlags` covers both slots.
   - The new `SetBattlerLearnedAbility` writes the in-battle learned slot.
   - When a learned Neutralizing Gas is overwritten, the gas-exit sequence restores the learned slot rather than the natural one (`battlerState.learnedNeutralizingGasRemoved`, `learnedAbilityReplacement`).
-- 3.4 Mummy / Lingering Aroma.
-- 3.5 Wandering Spirit.
+- 3.4 ✅ Mummy / Lingering Aroma (`rule_mummy.c`, 6 tests). They replace the attacker's ability in the same slot as the target's, and a learned one fills an empty learned slot. As before, they don't replace Mummy, Lingering Aroma or a signature ability. Natural and learned copies each act on their own slot.
+- 3.5 ✅ Wandering Spirit (`rule_wandering_spirit.c`, 4 tests). It swaps the abilities in the same slot as the target's, and fails if the attacker's slot is empty or holds an ability that can't be swapped.
+- Supporting changes:
+  - The slot dispatchers record the slot whose ability is running in `gBattleStruct->firingAbilitySlot` (natural otherwise).
+  - Learned-slot variants of the Mummy and Wandering Spirit scripts use the new `setlastusedabilitytolearned` command, so popups and messages name the learned slots.
 - 3.6 Power of Alchemy / Receiver.
 - 3.7 Trace.
 - 3.8 Truant twice.

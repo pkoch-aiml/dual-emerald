@@ -4000,14 +4000,20 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
             break;
         case ABILITY_LINGERING_AROMA:
         case ABILITY_MUMMY:
+        {
+            // Dual Emerald: replaces the attacker's ability in the same slot as the target's, and
+            // fills an empty learned slot (user's ruling).
+            enum BattlerAbilitySlot slot = gBattleStruct->firingAbilitySlot;
+            enum Ability attackerAbility = GetBattlerRawAbilityInSlot(gBattlerAttacker, slot);
+
             if (IsBattlerAlive(gBattlerAttacker)
              && !gSpecialStatuses[gBattlerAttacker].attackerInParty
              && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES)
              && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker), move)
-             && gBattleMons[gBattlerAttacker].volatiles.overwrittenAbility != GetBattlerAbility(gBattlerTarget)
-             && gBattleMons[gBattlerAttacker].ability != ABILITY_MUMMY
-             && gBattleMons[gBattlerAttacker].ability != ABILITY_LINGERING_AROMA
-             && !gAbilitiesInfo[gBattleMons[gBattlerAttacker].ability].cantBeSuppressed)
+             && (slot == BATTLER_ABILITY_LEARNED || gBattleMons[gBattlerAttacker].volatiles.overwrittenAbility != GetBattlerAbility(gBattlerTarget))
+             && attackerAbility != ABILITY_MUMMY
+             && attackerAbility != ABILITY_LINGERING_AROMA
+             && !gAbilitiesInfo[attackerAbility].cantBeSuppressed)
             {
                 if (GetBattlerHoldEffectIgnoreAbility(gBattlerAttacker) == HOLD_EFFECT_ABILITY_SHIELD)
                 {
@@ -4015,20 +4021,38 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                     break;
                 }
 
-                RemoveAbilityFlags(gBattlerAttacker);
-                gLastUsedAbility = gBattleMons[gBattlerAttacker].ability;
-                gBattleMons[gBattlerAttacker].ability = gBattleMons[gBattlerAttacker].volatiles.overwrittenAbility = gBattleMons[gBattlerTarget].ability;
-                BattleScriptCall(BattleScript_MummyActivates);
+                gLastUsedAbility = attackerAbility;
+                if (slot == BATTLER_ABILITY_LEARNED)
+                {
+                    RemoveLearnedAbilityFlags(gBattlerAttacker);
+                    SetBattlerLearnedAbility(gBattlerAttacker, ability);
+                    gBattleScripting.abilityPopupOverwrite = ability; // the target's popup names its learned slot
+                    BattleScriptCall(BattleScript_MummyActivatesLearnedSlot);
+                }
+                else
+                {
+                    RemoveAbilityFlags(gBattlerAttacker);
+                    gBattleMons[gBattlerAttacker].ability = gBattleMons[gBattlerAttacker].volatiles.overwrittenAbility = gBattleMons[gBattlerTarget].ability;
+                    BattleScriptCall(BattleScript_MummyActivates);
+                }
                 effect++;
                 break;
             }
             break;
+        }
         case ABILITY_WANDERING_SPIRIT:
+        {
+            // Dual Emerald: swaps the abilities in the same slot as the target's Wandering Spirit, and
+            // fails if the attacker's slot is empty.
+            enum BattlerAbilitySlot slot = gBattleStruct->firingAbilitySlot;
+            enum Ability attackerAbility = GetBattlerRawAbilityInSlot(gBattlerAttacker, slot);
+
             if (IsBattlerAlive(gBattlerAttacker)
              && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES)
              && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker), move)
              && !(GetActiveGimmick(gBattlerTarget) == GIMMICK_DYNAMAX)
-             && !gAbilitiesInfo[gBattleMons[gBattlerAttacker].ability].cantBeSwapped)
+             && attackerAbility != ABILITY_NONE
+             && !gAbilitiesInfo[attackerAbility].cantBeSwapped)
             {
                 if (GetBattlerHoldEffectIgnoreAbility(gBattlerAttacker) == HOLD_EFFECT_ABILITY_SHIELD)
                 {
@@ -4041,15 +4065,27 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                     break;
                 }
 
-                RemoveAbilityFlags(gBattlerAttacker);
-                gLastUsedAbility = gBattleMons[gBattlerAttacker].ability;
-                gBattleMons[gBattlerAttacker].ability = gBattleMons[gBattlerAttacker].volatiles.overwrittenAbility = gBattleMons[gBattlerTarget].ability;
-                gBattleMons[gBattlerTarget].ability = gBattleMons[gBattlerTarget].volatiles.overwrittenAbility = gLastUsedAbility;
-                BattleScriptCall(BattleScript_WanderingSpiritActivates);
+                gLastUsedAbility = attackerAbility;
+                if (slot == BATTLER_ABILITY_LEARNED)
+                {
+                    RemoveLearnedAbilityFlags(gBattlerAttacker);
+                    RemoveLearnedAbilityFlags(gBattlerTarget);
+                    SetBattlerLearnedAbility(gBattlerAttacker, ability);
+                    SetBattlerLearnedAbility(gBattlerTarget, attackerAbility);
+                    BattleScriptCall(BattleScript_WanderingSpiritActivatesLearnedSlot);
+                }
+                else
+                {
+                    RemoveAbilityFlags(gBattlerAttacker);
+                    gBattleMons[gBattlerAttacker].ability = gBattleMons[gBattlerAttacker].volatiles.overwrittenAbility = gBattleMons[gBattlerTarget].ability;
+                    gBattleMons[gBattlerTarget].ability = gBattleMons[gBattlerTarget].volatiles.overwrittenAbility = gLastUsedAbility;
+                    BattleScriptCall(BattleScript_WanderingSpiritActivates);
+                }
                 effect++;
                 break;
             }
             break;
+        }
         case ABILITY_ANGER_POINT:
             if (gSpecialStatuses[battler].criticalHit
              && IsBattlerTurnDamaged(battler, GetConfig(B_UPDATED_ABILITY_DATA) <= GEN_4 ? INCLUDING_SUBSTITUTES : EXCLUDING_SUBSTITUTES)
@@ -5146,12 +5182,23 @@ static void FinishFiredAbilitySlot(enum BattlerId battler, u8 *slotCursor)
     *slotCursor = 0;
 }
 
+// Runs an ability effect for one slot, telling slot-specific effects (Mummy, Wandering Spirit, ...)
+// which slot fired through gBattleStruct->firingAbilitySlot.
+static u32 AbilityBattleEffectsInSlot(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger, enum BattlerAbilitySlot slot)
+{
+    u32 effect;
+    gBattleStruct->firingAbilitySlot = slot;
+    effect = AbilityBattleEffects(caseID, battler, ability, move, shouldAbilityTrigger);
+    gBattleStruct->firingAbilitySlot = BATTLER_ABILITY_NATURAL;
+    return effect;
+}
+
 bool32 TryAbilityEffectsBySlot(enum AbilityEffect caseID, enum BattlerId battler, enum Ability naturalAbility, enum Move move, bool32 shouldAbilityTrigger, u8 *slotCursor)
 {
     enum Ability ability;
     while (NextAbilitySlot(battler, naturalAbility, slotCursor, &ability))
     {
-        if (AbilityBattleEffects(caseID, battler, ability, move, shouldAbilityTrigger))
+        if (AbilityBattleEffectsInSlot(caseID, battler, ability, move, shouldAbilityTrigger, *slotCursor - 1))
         {
             FinishFiredAbilitySlot(battler, slotCursor);
             return TRUE;
@@ -5166,7 +5213,11 @@ bool32 TryEachAbilitySlot(enum BattlerId battler, enum Ability naturalAbility, A
     enum Ability ability;
     while (NextAbilitySlot(battler, naturalAbility, slotCursor, &ability))
     {
-        if (func(battler, ability))
+        bool32 fired;
+        gBattleStruct->firingAbilitySlot = *slotCursor - 1;
+        fired = func(battler, ability);
+        gBattleStruct->firingAbilitySlot = BATTLER_ABILITY_NATURAL;
+        if (fired)
         {
             FinishFiredAbilitySlot(battler, slotCursor);
             return TRUE;
@@ -5184,7 +5235,7 @@ bool32 TryAbilityEffectsAnySlot(enum AbilityEffect caseID, enum BattlerId battle
     if (AbilityBattleEffects(caseID, battler, naturalAbility, move, shouldAbilityTrigger))
         return TRUE;
     learnedAbility = GetBattlerAbilityInSlot(battler, BATTLER_ABILITY_LEARNED);
-    if (learnedAbility != ABILITY_NONE && AbilityBattleEffects(caseID, battler, learnedAbility, move, shouldAbilityTrigger))
+    if (learnedAbility != ABILITY_NONE && AbilityBattleEffectsInSlot(caseID, battler, learnedAbility, move, shouldAbilityTrigger, BATTLER_ABILITY_LEARNED))
         return TRUE;
     return FALSE;
 }

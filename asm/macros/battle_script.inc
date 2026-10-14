@@ -2069,6 +2069,12 @@
 	.byte \slot
 	.endm
 
+	@ Dual Emerald: makes the next popup or message about the battler's ability name its learned slot.
+	.macro setlastusedabilitytolearned battler:req
+	callnative BS_SetLastUsedAbilityToLearned
+	.byte \battler
+	.endm
+
 	.macro jumpifgenconfiglowerthan tag:req, gen:req, jumpInstr:req
 	callnative BS_JumpIfGenConfigLowerThan
 	.2byte \tag

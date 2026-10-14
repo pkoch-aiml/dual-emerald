@@ -608,6 +608,7 @@ struct BattleStruct
     struct PendingScriptAbilitySlot pendingScriptAbilitySlots[MAX_PENDING_SCRIPT_ABILITY_SLOTS];
     u8 pendingScriptAbilitySlotCount;
     bool8 reactivatingSwitchInAbilities;
+    u8 firingAbilitySlot; // Dual Emerald: the slot (enum BattlerAbilitySlot) whose ability the slot dispatchers are running; natural otherwise.
     u16 learnedAbilityReplacement[MAX_BATTLERS_COUNT]; // Dual Emerald: what replaced a learned Neutralizing Gas, restored after it wears off. // Dual Emerald: switchinabilities after Neutralizing Gas leaves skips slots that can't be reactivated.
     u8 dualAbsorbBattler;   // Dual Emerald: target whose two slots both absorb the current move
     u8 dualAbsorbMoveType;

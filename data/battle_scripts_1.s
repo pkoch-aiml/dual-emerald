@@ -5027,6 +5027,7 @@ BattleScript_MummyActivates::
 	copybyte gBattlerAbility, gBattlerAttacker
 	copyhword sABILITY_OVERWRITE, gLastUsedAbility
 	call BattleScript_AbilityPopUpOverwriteThenNormal
+BattleScript_MummyActivatesEnd:
 	recordability BS_TARGET
 	recordability BS_ATTACKER
 	printstring STRINGID_ATTACKERACQUIREDABILITY
@@ -5037,6 +5038,17 @@ BattleScript_MummyActivates::
 	tryendneutralizinggas BS_ATTACKER
 	return
 
+@ Dual Emerald: Mummy/Lingering Aroma in the target's learned slot replaced the attacker's learned
+@ ability. sABILITY_OVERWRITE names the target's ability and gLastUsedAbility the attacker's old one.
+BattleScript_MummyActivatesLearnedSlot::
+	setbyte sFIXED_ABILITY_POPUP, TRUE
+	call BattleScript_AbilityPopUpTarget
+	copybyte gBattlerAbility, gBattlerAttacker
+	copyhword sABILITY_OVERWRITE, gLastUsedAbility
+	setlastusedabilitytolearned BS_ATTACKER
+	call BattleScript_AbilityPopUpOverwriteThenNormal
+	goto BattleScript_MummyActivatesEnd
+
 BattleScript_WanderingSpiritActivates::
 	saveattacker
 	savetarget
@@ -5046,6 +5058,7 @@ BattleScript_WanderingSpiritActivates::
 	copybyte gBattlerAbility, gBattlerAttacker
 	copyhword sABILITY_OVERWRITE, gLastUsedAbility
 	call BattleScript_AbilityPopUpOverwriteThenNormal
+BattleScript_WanderingSpiritActivatesEnd:
 	recordability BS_TARGET
 	recordability BS_ATTACKER
 	printstring STRINGID_SWAPPEDABILITIES
@@ -5057,6 +5070,20 @@ BattleScript_WanderingSpiritActivatesRet:
 	restoreattacker
 	restoretarget
 	return
+
+@ Dual Emerald: Wandering Spirit in the target's learned slot swapped the two learned abilities.
+BattleScript_WanderingSpiritActivatesLearnedSlot::
+	saveattacker
+	savetarget
+	copybyte gBattlerAbility, gBattlerTarget
+	sethword sABILITY_OVERWRITE, ABILITY_WANDERING_SPIRIT
+	setlastusedabilitytolearned BS_TARGET
+	call BattleScript_AbilityPopUpOverwriteThenNormal
+	copybyte gBattlerAbility, gBattlerAttacker
+	copyhword sABILITY_OVERWRITE, gLastUsedAbility
+	setlastusedabilitytolearned BS_ATTACKER
+	call BattleScript_AbilityPopUpOverwriteThenNormal
+	goto BattleScript_WanderingSpiritActivatesEnd
 
 BattleScript_SwitchInAbilityMsg::
 	call BattleScript_AbilityPopUp
